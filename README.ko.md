@@ -1,159 +1,173 @@
 # trade-skills
 
-해외영업 담당자가 **리드 발굴 전 단계인 "어느 시장을 뚫을지"** 를 결정할 수 있게 해주는 Claude 스킬 묶음.
+**"우리 제품, 어느 나라부터 팔러 갈까?"** 를 데이터로 정해주는 Claude 스킬입니다.
 
-터미널을 열 필요 없다. Claude에게 한국어로 물어보면 된다.
+해외영업 담당자를 위해 만들었습니다. 터미널을 열 필요도, 프로그램을 설치할 필요도,
+회원가입을 할 필요도 없습니다.
 
->  "화장품 어느 나라부터 뚫어야 해?"
->  "이차전지 상위 교역국 비교해줘"
->  "3907 베트남 시장 어때?"
+> English: [README.md](README.md)
 
-HS코드를 몰라도 된다. 품목명을 한국어로 말하면 코드를 찾아 확인해준다.
+---
 
-## 지금 들어 있는 것
+## ⚠️ 먼저 읽어주세요
 
-| 스킬 | 하는 일 | 인증키 |
-|---|---|---|
-| `trade-stats-lookup` | HS코드별·국가별 수출입 통계, 경쟁국 점유율, 시장 매력도 순위 | **불필요** |
+이 세 가지를 모르고 쓰면 **숫자는 맞는데 결론이 반대로** 갈 수 있습니다.
+
+### 1. 여기 나오는 "점유율"은 수입품 중에서의 점유율입니다
+
+시장 점유율이 아닙니다. **현지 공장에서 만들어 파는 물량은 이 통계에 아예 없습니다.**
+
+> "미국 화장품 한국 점유율 24.8%"
+> = 미국이 **수입하는** 화장품 중 한국산이 24.8%
+> ≠ 미국 화장품 시장의 1/4이 한국산
+
+미국은 현지 화장품 회사가 강한 나라라(P&G, Estée Lauder 등) 실제 시장 점유율은 훨씬 낮습니다.
+식품·자동차·철강·화장품처럼 **현지 생산이 강한 품목일수록 이 차이가 큽니다.**
+사업계획서나 보고서에 쓰실 때 "수입 기준"이라고 꼭 함께 적어주세요.
+
+같은 이유로 표의 "현지 총수입"도 그 나라의 시장 규모가 아닙니다.
+
+### 2. 바이어 회사 이름은 나오지 않습니다
+
+도구가 부족해서가 아니라 **법 때문입니다.** 한국은 관세법상 수출입 신고정보가 비밀유지 대상이라,
+어느 회사가 무엇을 얼마에 수출했는지가 어디에도 공개되지 않습니다. 관세청도 무역협회도 마찬가지입니다.
+다른 무료 도구를 찾아 헤매실 필요 없습니다.
+
+이 스킬이 답해주는 건 **"어느 나라에 바이어를 찾으러 갈지"** 입니다. 바이어 발굴의 바로 앞 단계입니다.
+
+### 3. 수출 절차·관세·인증 정보는 이 스킬이 검증한 게 아닙니다
+
+Claude가 아는 일반 지식으로 답할 수는 있지만, 이 도구가 확인해준 내용이 아닙니다.
+**특히 관세율은 2025년 이후 계속 바뀌고 있으니 반드시 따로 확인하세요.**
+
+- 미국 HTS: https://hts.usitc.gov
+- 관세청 FTA 포털 · 무역협회 · KOTRA 상담
+
+---
+
+## 어떻게 쓰나요
+
+Claude에게 **한국어로 그냥 물어보면** 됩니다.
+
+```
+"화장품 미국 시장 어때?"
+"이차전지 어느 나라부터 뚫어야 해?"
+"베트남에 라면 팔면 경쟁 심한가?"
+"우리 품목 어디부터 봐야 할까"
+```
+
+HS코드를 몰라도 됩니다. **품목명을 한국어로 말하면** 코드 후보를 찾아서
+"이 코드로 볼까요?" 하고 확인받은 뒤 진행합니다.
+
+약 80초 뒤에 순위표와 근거, 그리고 엑셀에서 바로 열리는 CSV가 나옵니다.
+
+## 무엇이 나오나요
+
+| 항목 | 뜻 |
+|---|---|
+| 현지 총수입 | 그 나라가 전 세계에서 수입하는 금액 |
+| **시장 CAGR** | **그 시장**이 커지는 속도 |
+| 한국 수출액·CAGR | **우리**가 그 나라에 파는 금액과 속도 |
+| 한국 점유율 | 수입품 중 한국 비중 (위 ⚠️1 참고) |
+| 1위 공급국 | 지금 그 자리를 차지한 나라. 60% 이상이면 ⚠️ 표시 |
+| 매력도 | 시장규모 40% + 시장성장 35% + 점유율 여유 25% |
+
+**가장 쓸모 있는 건 "시장 CAGR"과 "한국 수출 CAGR"의 차이입니다.**
+
+- 시장은 크는데 우리 수출이 줄고 있다 → **점유율을 뺏기는 중**
+- 시장은 주는데 우리 수출만 늘고 있다 → **중계무역 경유일 가능성** (실제 소비지가 다른 나라)
+
+### 예시
+
+```
+| # | 국가  | 매력도 | 현지 총수입 | 시장 CAGR | 한국 수출 | 한국 CAGR | 한국 점유율 | 1위 공급국 |
+|---|-------|--------|-------------|-----------|-----------|-----------|-------------|------------|
+| 1 | 대만  | 75.3   | $11.4억     | +36.2%    | $1.1억    | +11.5%    | 7.1%        | 중국 31%   |
+| 2 | 중국  | 72.0   | $70.8억     |  +1.6%    | $10.4억   |  -3.5%    | 16.0%       | 한국 16%   |
+| 3 | 인도  | 62.1   | $27.0억     |  +4.1%    | $3.5억    |  -5.7%    | 14.1%       | 중국 34%   |
+```
 
 ## 설치
 
-### Claude Code — 마켓플레이스
+### Claude Code를 쓰신다면
 
 ```
 /plugin marketplace add bonghyunyang/trade-skills
 /plugin install trade-stats@trade-skills
 ```
 
-### Claude Code — 로컬
+### Cowork · claude.ai를 쓰신다면
 
-```bash
-cp -r plugins/trade-stats/skills/trade-stats-lookup ~/.claude/skills/
-```
+[Releases](https://github.com/bonghyunyang/trade-skills/releases)에서 `trade-stats-lookup.zip`을 받아
+**Settings → Capabilities → Skills** 에서 업로드하세요.
 
-### Cowork / claude.ai
+### 필요한 것
 
-```bash
-./package.sh
-```
-생성된 `dist/trade-stats-lookup.zip`을 Settings → Capabilities → Skills 에서 업로드한다.
-
-## 필요한 것
-
-- `python3` **3.11 이상** — 표준 라이브러리만 쓴다. `pip install` 없다. (3.11·3.12·3.13 검증)
-  - macOS 기본 파이썬은 3.9(EOL)라 로컬에서 직접 돌리려면 `brew install python@3.11` 필요.
-    Cowork/claude.ai로 쓰면 해당 없음.
 - 인터넷 연결
-- **API 키 발급 없음.** UN Comtrade 공개 엔드포인트를 쓴다.
+- **API 키 발급 불필요** — UN Comtrade 공개 데이터를 씁니다
+- (직접 명령어로 돌릴 때만) `python3` 3.11 이상
 
-## 무엇이 나오나
+---
 
-HS코드 하나를 주면 기본적으로 **한국 전체 교역 상위 10개국**을 스캔한다(약 80초).
+## 숫자를 읽을 때 더 알아두면 좋은 것
 
-- 국가별 한국 수출액·중량 3년 시계열
-- 단가 추이 — 프리미엄화 중인지 저가경쟁 중인지
-- 상대국 총수입 규모와 **공급국 점유율** (한국이 몇 위인지)
-- 시장 매력도 점수 = 규모 40% + 성장률 35% + 점유율 여유 25%
-- 월별 수집 시 계절성과 최근 12개월 YoY
-- CSV 3종 + 한국어 마크다운 리포트
+- **매력도 점수는 절대 등급이 아닙니다.** 이번에 함께 조회한 국가들 사이의 상대값이라,
+  관계없는 나라 하나를 넣고 빼는 것만으로 순위가 뒤집힐 수 있습니다.
+  판단이 갈리면 비교 대상을 바꿔 두세 번 돌려보고, **순위가 유지되는 나라**를 믿으세요.
+- **"점유율 여유"가 크다고 빈 시장이 아닙니다.** 한국 점유율이 낮아도 그 자리에 이미
+  다른 나라가 앉아 있을 수 있습니다. 그래서 표에 1위 공급국을 같이 보여주고,
+  60% 이상 과점이면 ⚠️ 를 붙입니다.
+- **순위에서 빠진 나라는 "나쁜 시장"이 아닙니다.** 데이터가 없어 측정을 못 한 겁니다.
+- **단가(금액÷중량) 변화는 원인을 알 수 없습니다.** 가격이 오른 건지, 비싼 제품 비중이
+  늘어난 건지 구분되지 않습니다. "프리미엄화됐다"고 읽으면 대개 틀립니다.
+- **한국 수출액은 FOB, 상대국 수입액은 CIF** 기준이라 같은 거래도 금액이 다릅니다.
+- **HS 6자리까지만** 볼 수 있습니다. 10자리(HSK)는 관세청 오픈API가 따로 필요합니다.
+- 최신 데이터는 나라마다 2~6개월 늦게 들어옵니다. 스킬이 자동으로 있는 데까지 물러나 조회합니다.
 
-CSV는 UTF-8 BOM이라 엑셀에서 바로 열린다.
+더 자세한 내용: [`data-notes.md`](plugins/trade-stats/skills/trade-stats-lookup/references/data-notes.md)
 
-### HS코드 찾기
-
-한국어 품목명을 그대로 넣으면 된다. 챕터 96개 전체와 주요 품목 123개가 색인돼 있다.
-
-```
-"화장품"    → 3304 (기초·색조화장품)
-"이차전지"   → 8507 (축전지)
-"자동차부품" → 8708
-"라면"      → 1902
-```
-
-### 예시 출력
-
-```
-| # | 국가 | 매력도 | 한국 수출액 | CAGR  | 현지 총수입 | 한국 점유율 | 한국 순위 |
-|---|------|--------|-------------|-------|-------------|-------------|-----------|
-| 1 | 중국 | 82.9   | $10.4억     | -3.5% | $70.8억     | 16.0%       | 1         |
-| 2 | 대만 | 75.3   | $1.1억      | +11.5%| $11.4억     | 7.1%        | 5         |
-| 3 | 미국 | 74.9   | $7.4억      | -4.2% | $42.6억     | 20.0%       | 1         |
-```
-
-## 알고 써야 할 한계
-
-- **기업 단위 데이터는 없다.** 한국은 관세법상 신고정보가 비밀유지 대상이라 기업명 × 품목 × 금액이
-  공개되지 않는다. "어느 회사가 수출하는지"는 답할 수 없다. 바이어 실명은 B/L 공개국(미국·인도 등)의
-  유료 데이터가 필요하다.
-- **HS 6단위까지.** 10단위(HSK)는 관세청 오픈API가 필요하다.
-- 한국 수출액은 FOB, 상대국 수입액은 CIF 기준이라 같은 거래도 금액이 다르다.
-- 최신 데이터는 보고 지연으로 2~6개월 비어 있을 수 있다.
-
-자세한 내용은 `plugins/trade-stats/skills/trade-stats-lookup/references/data-notes.md`.
-
-## 직접 CLI로 쓰기
+## 직접 명령어로 쓰기
 
 ```bash
 cd plugins/trade-stats/skills/trade-stats-lookup/scripts
 
-# 상위 10개 교역국 스캔
-python3 analyze.py market --hs 3907
-
-# 특정 국가 + 월별 계절성
+python3 analyze.py market --hs 3907                      # 상위 10개 교역국
 python3 analyze.py market --hs 3304 --countries 베트남,인도 --monthly 24
-
-# HS코드 찾기 — 한국어 그대로
-python3 fetch_comtrade.py hs-search "화장품"
-python3 fetch_comtrade.py hs-search "이차전지" --level 4
-
-# 단발 조회
-python3 fetch_comtrade.py rank --hs 3907 --year 2025
+python3 fetch_comtrade.py hs-search "화장품"             # HS코드 찾기
+python3 fetch_comtrade.py rank   --hs 3907 --year 2025
 python3 fetch_comtrade.py mirror --hs 3907 --importer VN --year 2024
 ```
 
-응답은 `~/.cache/trade-stats-lookup/`에 7일 캐시된다.
+조회 결과는 `~/.cache/trade-stats-lookup/`에 7일간 보관되어, 같은 질문은 즉시 답합니다.
+
+무료 공개 API라 요청 간격을 두고 호출합니다. 사내에서 여러 명이 같은 인터넷을 쓴다면
+`TRADE_STATS_MIN_INTERVAL=6` 처럼 간격을 늘려주세요.
+
+## 개발
+
+```bash
+python3 tests/record_fixtures.py   # 최초 1회 (픽스처는 레포에 없습니다)
+./tests/run_tests.sh               # 오프라인 105개, 네트워크 불필요
+./tests/run_tests.sh --live        # + 실제 API 계약 검증
+./package.sh                       # 검증 후 배포용 zip 생성
+```
+
+트리거 테스트(스킬이 실제로 호출되는지)는 코드로 잡을 수 없어 별도 절차로 돕니다 —
+[`tests/TRIGGER_TESTS.md`](tests/TRIGGER_TESTS.md). 자세한 내용은 [`tests/README.md`](tests/README.md).
 
 ## 레포 구조
 
 ```
 trade-skills/
 ├─ .claude-plugin/marketplace.json
-├─ plugins/trade-stats/
-│  ├─ .claude-plugin/plugin.json
-│  └─ skills/trade-stats-lookup/
-│     ├─ SKILL.md
-│     ├─ scripts/
-│     │  ├─ comtrade.py           # API 클라이언트 · 캐시 · 백오프 · 코드 해석
-│     │  ├─ fetch_comtrade.py     # 단발 조회 CLI
-│     │  ├─ analyze.py            # 시장 리포트 생성
-│     │  └─ refresh_reference.py  # 참조 스냅샷 갱신
-│     └─ references/
-│        ├─ hs_ko.json             # 한국어 HS 색인 (챕터 96 + 품목 123)
-│        ├─ hs-codes.md           # 한국어 → 영어 검색어 힌트
-│        ├─ country-codes.md      # 국가 코드 · Comtrade 표기 함정
-│        ├─ data-notes.md         # 출처 · 한계 · 다음 Phase
-│        ├─ areas.json            # 지역 312개 (폐지국 플래그 포함)
-│        ├─ hs.json               # HS 2/4/6단위 8,262개
-│        ├─ country_aliases_ko.json  # 한글/영문 입력 → 코드
-│        ├─ country_names_ko.json    # 코드 → 한글 표기
-│        └─ kr-top-partners.json     # 한국 교역 상위 20개국 스냅샷
-├─ tests/                          # 오프라인 87개 + 라이브 계약 7개
-├─ package.sh                      # 배포 검증 + zip 생성
+├─ plugins/trade-stats/skills/trade-stats-lookup/
+│  ├─ SKILL.md
+│  ├─ scripts/      comtrade.py · fetch_comtrade.py · analyze.py · refresh_reference.py
+│  └─ references/   한국어 HS 색인, 국가 코드, 데이터 주의사항
+├─ tests/           오프라인 105개 + 라이브 계약 7개
+├─ package.sh       검증 + zip 생성
 └─ README.ko.md
 ```
-
-## 개발
-
-```bash
-./tests/run_tests.sh          # 오프라인 스위트 (~0.1초, 네트워크 불필요)
-./tests/run_tests.sh --live   # + 실제 API 계약 검증 (~35초)
-./package.sh                  # 검증 통과 시 dist/trade-stats-lookup.zip 생성
-```
-
-자세한 내용은 `tests/README.md`.
-
-트리거 테스트(스킬이 실제로 호출되는지)는 코드로 잡을 수 없어 별도 절차로 돌린다 —
-`tests/TRIGGER_TESTS.md`. 최근 실행 결과는 긍정 6/6, 오발동 0.
 
 ## 로드맵
 
@@ -165,21 +179,17 @@ trade-skills/
 | `trade-outreach-draft` | 현지어 콜드메일 초안 |
 | `trade-pipeline-sheet` | 파이프라인 기록 관리 |
 
-관세청 오픈API(HS 10단위·빠른 월별)를 붙이려면 인증키를 서버에만 두는 프록시가 필요하다.
-사용자에게 키 발급을 요구하지 않는 것이 이 프로젝트의 설계 원칙이다.
-
 ## 라이선스와 데이터 출처
 
-**코드**는 MIT다 (`LICENSE`).
+**코드**는 MIT입니다 ([`LICENSE`](LICENSE)).
 
-**번들된 참조 데이터는 MIT가 아니다.** 출처와 조건은 `NOTICE`에 정리돼 있다.
+**함께 들어 있는 참조 데이터는 MIT가 아닙니다.** 출처와 조건은 [`NOTICE`](NOTICE)에 정리했습니다.
 
-- `areas.json`, `hs.json` — UN Comtrade 공개 참조 파일. `refresh_reference.py codes`로 재생성 가능.
-- `hs.json`의 품목 설명은 **세계관세기구(WCO)가 저작권을 주장하는 HS 노멘클레이처**다.
-  UN Comtrade에서 받았다는 사실이 제3자 재배포 권한을 주지는 않는다. 포크·상용 배포 전에 확인할 것.
-- `hs_ko.json` 등 한국어 색인은 이 프로젝트의 작업물이고 MIT다.
-- `tests/fixtures/cache/`는 UN Comtrade 원본 응답이라 **레포에 포함하지 않는다.**
-  기여자는 `python3 tests/record_fixtures.py`로 로컬 생성한다.
+- `areas.json`, `hs.json` — UN Comtrade 공개 참조 파일
+- `hs.json`의 품목 설명은 **세계관세기구(WCO)가 저작권을 주장하는 HS 노멘클레이처**입니다.
+  UN Comtrade에서 받았다는 사실이 제3자 재배포 권한을 주지는 않습니다. 포크하거나 상용으로
+  쓰시기 전에 확인하세요.
+- 한국어 색인(`hs_ko.json` 등)은 이 프로젝트의 작업물이고 MIT입니다.
 
 무역통계 출처: United Nations Comtrade (https://comtrade.un.org).
-유엔은 이 프로젝트를 보증하지 않는다.
+유엔은 이 프로젝트를 보증하지 않습니다.

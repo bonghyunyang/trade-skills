@@ -14,6 +14,42 @@ Comtrade data — no API key, no dependencies, no signup.
 Ask in plain language. The skill resolves the HS code, pulls the trade data,
 and returns a ranked shortlist with the reasoning shown.
 
+---
+
+## ⚠️ Read this first
+
+These matter more than the tool does. Get them wrong and you get numbers that
+are correct and conclusions that are backwards.
+
+- **Share of imports is not market share.** Mirror data covers imports only, so
+  domestic producers are invisible. "Korea holds 53% in Vietnam" means 53% of
+  *imported* instant noodles — the local manufacturers who actually dominate
+  that market are absent from the dataset entirely. The risk is highest in food,
+  automotive, steel, and cosmetics. For the same reason, "local total imports"
+  is not the size of that country's market.
+- **No company-level data exists here.** Korean customs declarations are
+  confidential by law, so no source gives you exporter name × product × value.
+  Buyer names require paid bill-of-lading data (Panjiva, ImportYeti, Volza) from
+  countries that publish B/Ls — the US and India do; Korea, the EU, Japan, and
+  China do not.
+- **HS 6-digit maximum.** National 8/10-digit subdivisions are not comparable
+  across countries and are not in Comtrade.
+- **FOB vs CIF.** Korea reports exports FOB, partners report imports CIF. The
+  same shipment is worth more on the importer's books. Never compute a share by
+  mixing the two.
+- **The score is relative, not absolute.** Every axis is min-max normalized
+  across the countries in *that* query. Adding or removing an unrelated country
+  can flip the ranking, not just the scores. Run it twice with different
+  comparison sets and trust the countries that stay put.
+- **Unit price is `value ÷ weight`.** Its movement mixes price changes with
+  product-mix changes and the two cannot be separated above HS 6-digit. It is
+  not a quality signal.
+
+Full detail: [`references/data-notes.md`](plugins/trade-stats/skills/trade-stats-lookup/references/data-notes.md)
+(Korean).
+
+---
+
 ## What you get
 
 For one HS code, across ten markets by default (~80 seconds):
@@ -72,38 +108,6 @@ Upload the zip under Settings → Capabilities → Skills.
 `pip install`) and an internet connection. Tested on 3.11, 3.12, and 3.13.
 macOS ships 3.9, which is end-of-life — `brew install python@3.11` if you are
 running this locally rather than through Cowork.
-
-## Read the numbers correctly
-
-These caveats matter more than the tool does. Getting them wrong produces
-confident, plausible, wrong decisions.
-
-- **Share of imports is not market share.** Mirror data covers imports only, so
-  domestic producers are invisible. "Korea holds 53% in Vietnam" means 53% of
-  *imported* instant noodles — the local manufacturers who actually dominate
-  that market are absent from the dataset entirely. The risk is highest in food,
-  automotive, steel, and cosmetics. For the same reason, "local total imports"
-  is not the size of that country's market.
-- **No company-level data exists here.** Korean customs declarations are
-  confidential by law, so no source gives you exporter name × product × value.
-  Buyer names require paid bill-of-lading data (Panjiva, ImportYeti, Volza) from
-  countries that publish B/Ls — the US and India do; Korea, the EU, Japan, and
-  China do not.
-- **HS 6-digit maximum.** National 8/10-digit subdivisions are not comparable
-  across countries and are not in Comtrade.
-- **FOB vs CIF.** Korea reports exports FOB, partners report imports CIF. The
-  same shipment is worth more on the importer's books. Never compute a share by
-  mixing the two.
-- **The score is relative, not absolute.** Every axis is min-max normalized
-  across the countries in *that* query. Adding or removing an unrelated country
-  can flip the ranking, not just the scores. Run it twice with different
-  comparison sets and trust the countries that stay put.
-- **Unit price is `value ÷ weight`.** Its movement mixes price changes with
-  product-mix changes and the two cannot be separated above HS 6-digit. It is
-  not a quality signal.
-
-Full detail: [`references/data-notes.md`](plugins/trade-stats/skills/trade-stats-lookup/references/data-notes.md)
-(Korean).
 
 ## Scope
 
