@@ -50,6 +50,41 @@ Full detail: [`references/data-notes.md`](plugins/trade-stats/skills/trade-stats
 
 ---
 
+## Why this exists
+
+Written by someone who did overseas sales, for that job.
+
+**Market research eats half a day per product.** Deciding which country to go
+after first means opening KOTRA reports, KITA's K-stat, and ITC Trade Map
+separately, typing the HS code into each, and copying numbers into a
+spreadsheet. The questions being asked are simple — where are we losing share,
+where is there still room — but getting to them is not.
+
+**So the decision ends up being made on instinct.** The country where the last
+trade show produced the most business cards. The one an inquiry came from. Ask
+for the reasoning and it is "the market is big." Whether the market is actually
+growing, who is capturing that growth, and whether any room is left usually goes
+unchecked.
+
+**Buyer discovery is the next problem, and the first one has already exhausted
+you.** Pick the wrong market and the contact list length does not matter. In
+practice the first step gets rushed so the buyer list can start.
+
+This tool does one thing: **make market selection quantitative.** One question,
+eighty seconds, no HS code required — and, more importantly, the caveats needed
+to read the answer correctly travel with the numbers.
+
+Tools that just produce numbers already exist. The failure mode is numbers that
+quietly lead somewhere wrong: import share mistaken for market share, an
+entrepôt read as a promising market, a country with no data read as a bad
+market. So the warnings above are not buried in documentation — they are printed
+inside the report itself.
+
+**Buyer discovery is deliberately out of scope.** Korean company-level trade
+data is not legally public, so no free tool can do it, and pretending otherwise
+is the worst option. Getting "which country to go looking in" right is the goal
+instead.
+
 ## What you get
 
 For one HS code, across ten markets by default (~80 seconds):
