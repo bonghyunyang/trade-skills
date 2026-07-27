@@ -1,0 +1,26 @@
+{
+  "name": "trade-skills",
+  "owner": {
+    "name": "Bonghyun Yang",
+    "url": "https://github.com/bonghyunyang"
+  },
+  "metadata": {
+    "description": "해외영업 담당자를 위한 무역 통계·시장 우선순위 스킬 묶음",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "trade-stats",
+      "source": "./plugins/trade-stats",
+      "description": "HS코드별·국가별 수출입 통계 조회와 시장 우선순위 산출. 인증키 불필요.",
+      "version": "0.1.0",
+      "category": "research",
+      "keywords": [
+        "trade",
+        "export",
+        "hs-code",
+        "market-research"
+      ]
+    }
+  ]
+}

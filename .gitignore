@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.omc/
+trade-stats-out/
+.DS_Store
+dist/
+
+# Raw UN Comtrade API responses — the publisher's data, not ours.
+# Regenerate locally: python3 tests/record_fixtures.py
+tests/fixtures/cache/
+
+# Internal planning brief — kept locally, not published.
+docs/handoff-brief.ko.md

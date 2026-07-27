@@ -1,0 +1,207 @@
+{
+ "source": "UN Comtrade preview, reporter=KOR, cmdCode=TOTAL, flow=X",
+ "year": 2025,
+ "generated": "2026-07-27",
+ "partners": [
+  {
+   "rank": 1,
+   "code": 156,
+   "name": "China",
+   "iso2": "CN",
+   "export_usd": 130646977538.0,
+   "share_pct": 18.43,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 2,
+   "code": 842,
+   "name": "USA",
+   "iso2": "US",
+   "export_usd": 123237977820.0,
+   "share_pct": 17.38,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 3,
+   "code": 704,
+   "name": "Viet Nam",
+   "iso2": "VN",
+   "export_usd": 62773670778.0,
+   "share_pct": 8.85,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 4,
+   "code": 490,
+   "name": "Other Asia, nes",
+   "iso2": null,
+   "export_usd": 49068855376.0,
+   "share_pct": 6.92,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 5,
+   "code": 344,
+   "name": "China, Hong Kong SAR",
+   "iso2": "HK",
+   "export_usd": 34812619625.0,
+   "share_pct": 4.91,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 6,
+   "code": 392,
+   "name": "Japan",
+   "iso2": "JP",
+   "export_usd": 28292821900.0,
+   "share_pct": 3.99,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 7,
+   "code": 702,
+   "name": "Singapore",
+   "iso2": "SG",
+   "export_usd": 19552198723.0,
+   "share_pct": 2.76,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 8,
+   "code": 699,
+   "name": "India",
+   "iso2": "IN",
+   "export_usd": 19213200316.0,
+   "share_pct": 2.71,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 9,
+   "code": 36,
+   "name": "Australia",
+   "iso2": "AU",
+   "export_usd": 14172394705.0,
+   "share_pct": 2.0,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 10,
+   "code": 458,
+   "name": "Malaysia",
+   "iso2": "MY",
+   "export_usd": 12362646751.0,
+   "share_pct": 1.74,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 11,
+   "code": 484,
+   "name": "Mexico",
+   "iso2": "MX",
+   "export_usd": 12050227656.0,
+   "share_pct": 1.7,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 12,
+   "code": 608,
+   "name": "Philippines",
+   "iso2": "PH",
+   "export_usd": 11616343765.0,
+   "share_pct": 1.64,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 13,
+   "code": 124,
+   "name": "Canada",
+   "iso2": "CA",
+   "export_usd": 10208110064.0,
+   "share_pct": 1.44,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 14,
+   "code": 528,
+   "name": "Netherlands",
+   "iso2": "NL",
+   "export_usd": 9610581016.0,
+   "share_pct": 1.36,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 15,
+   "code": 276,
+   "name": "Germany",
+   "iso2": "DE",
+   "export_usd": 9271326377.0,
+   "share_pct": 1.31,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 16,
+   "code": 792,
+   "name": "Türkiye",
+   "iso2": "TR",
+   "export_usd": 9081161180.0,
+   "share_pct": 1.28,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 17,
+   "code": 616,
+   "name": "Poland",
+   "iso2": "PL",
+   "export_usd": 9003871572.0,
+   "share_pct": 1.27,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 18,
+   "code": 764,
+   "name": "Thailand",
+   "iso2": "TH",
+   "export_usd": 8006612259.0,
+   "share_pct": 1.13,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 19,
+   "code": 76,
+   "name": "Brazil",
+   "iso2": "BR",
+   "export_usd": 7705610877.0,
+   "share_pct": 1.09,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 20,
+   "code": 826,
+   "name": "United Kingdom",
+   "iso2": "GB",
+   "export_usd": 7167093395.0,
+   "share_pct": 1.01,
+   "reports_to_comtrade": true
+  }
+ ],
+ "test_partners": [
+  {
+   "rank": 35,
+   "code": 398,
+   "name": "Kazakhstan",
+   "iso2": "KZ",
+   "export_usd": 2991502053.0,
+   "share_pct": 0.42,
+   "reports_to_comtrade": true
+  },
+  {
+   "rank": 42,
+   "code": 860,
+   "name": "Uzbekistan",
+   "iso2": "UZ",
+   "export_usd": 1786877218.0,
+   "share_pct": 0.25,
+   "reports_to_comtrade": true
+  }
+ ]
+}

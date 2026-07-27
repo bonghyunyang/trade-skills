@@ -1,0 +1,81 @@
+NOTICE — third-party data bundled with this project
+===================================================
+
+The MIT license in LICENSE covers this project's source code. It does NOT
+cover the reference data files listed below, which originate from third
+parties and carry their own terms. They are included for interoperability and
+offline operation, and every one of them can be regenerated from its source.
+
+
+1. UN Comtrade reference tables
+-------------------------------
+Files:
+  plugins/trade-stats/skills/trade-stats-lookup/references/areas.json
+  plugins/trade-stats/skills/trade-stats-lookup/references/hs.json
+
+Source:
+  https://comtradeapi.un.org/files/v1/app/reference/Reporters.json
+  https://comtradeapi.un.org/files/v1/app/reference/partnerAreas.json
+  https://comtradeapi.un.org/files/v1/app/reference/HS.json
+
+Publisher: United Nations Statistics Division (UN Comtrade)
+Terms:     https://uncomtrade.org/  — consult UN Comtrade's terms of use
+           before redistributing these files further.
+
+Regenerate instead of trusting the snapshot:
+  python3 plugins/trade-stats/skills/trade-stats-lookup/scripts/refresh_reference.py codes
+
+
+2. Harmonized System nomenclature (inside hs.json)
+--------------------------------------------------
+The `desc` field of hs.json contains Harmonized System commodity descriptions.
+The Harmonized System nomenclature is a work of the World Customs Organization
+(WCO), which asserts copyright over it.
+
+  https://www.wcoomd.org/
+
+These descriptions are redistributed here as obtained from UN Comtrade's
+public reference endpoint. Obtaining them from UN Comtrade does not by itself
+convey WCO redistribution rights. If you fork, repackage, or ship this project
+commercially, verify your position with the WCO first — or drop hs.json and
+have refresh_reference.py fetch it at install time.
+
+
+3. Derived Korean-language indexes (this project's own work)
+------------------------------------------------------------
+Files:
+  references/hs_ko.json
+  references/country_aliases_ko.json
+  references/country_names_ko.json
+
+These map Korean product and country names onto HS/M49 codes. The mapping is
+original work by this project and is covered by LICENSE. The codes themselves
+are the public identifiers described above.
+
+
+4. Korea trading-partner snapshot
+---------------------------------
+File:
+  references/kr-top-partners.json
+
+Derived from UN Comtrade query results (reporter=KOR, cmdCode=TOTAL, flow=X).
+It is an aggregate ranking, not a reproduction of the underlying dataset.
+
+Regenerate:
+  python3 .../scripts/refresh_reference.py partners
+
+
+5. Test fixtures — NOT distributed
+----------------------------------
+tests/fixtures/cache/ holds raw UN Comtrade API responses (actual trade
+values). Those are the publisher's data, not ours, so they are deliberately
+excluded from version control via .gitignore.
+
+Contributors generate them locally before running the suite:
+  python3 tests/record_fixtures.py
+
+
+Attribution
+-----------
+Trade statistics retrieved from the United Nations Comtrade database
+(https://comtrade.un.org). The United Nations does not endorse this project.

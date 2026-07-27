@@ -1,0 +1,70 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  offline:
+    name: offline suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 is the floor (3.9 and 3.10 are end-of-life). No dependencies, so
+        # the spread that matters is stdlib behaviour across current releases.
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache recorded fixtures
+        # Fixtures are gitignored — they hold UN Comtrade's data, not ours — so
+        # CI records them once and reuses them. Without this every run would
+        # re-hit a free public API for data that has not changed.
+        id: fixtures
+        uses: actions/cache@v4
+        with:
+          path: tests/fixtures/cache
+          key: comtrade-fixtures-v1
+
+      - name: Record fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true'
+        env:
+          TRADE_STATS_CONTACT: https://github.com/bonghyunyang/trade-skills
+        run: python3 tests/record_fixtures.py
+
+      - name: Run offline suite
+        run: ./tests/run_tests.sh
+
+  package:
+    name: package
+    needs: offline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/cache@v4
+        with:
+          path: tests/fixtures/cache
+          key: comtrade-fixtures-v1
+
+      - name: Build the distributable skill
+        env:
+          TRADE_STATS_CONTACT: https://github.com/bonghyunyang/trade-skills
+        run: |
+          [ -d tests/fixtures/cache ] || python3 tests/record_fixtures.py
+          ./package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trade-stats-lookup
+          path: dist/trade-stats-lookup.zip

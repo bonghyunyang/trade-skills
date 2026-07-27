@@ -1,0 +1,20 @@
+{
+  "name": "trade-stats",
+  "description": "HS코드별·국가별 수출입 통계 조회와 시장 우선순위 산출. 인증키 없이 UN Comtrade 공개 데이터를 사용합니다.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Bonghyun Yang",
+    "url": "https://github.com/bonghyunyang"
+  },
+  "keywords": [
+    "trade",
+    "export",
+    "hs-code",
+    "comtrade",
+    "korea",
+    "market-research"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/bonghyunyang/trade-skills",
+  "repository": "https://github.com/bonghyunyang/trade-skills"
+}
