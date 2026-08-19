@@ -1,7 +1,7 @@
 {
   "name": "trade-stats",
   "description": "HS코드별, 국가별 수출입 통계 조회와 시장 우선순위 산출. 전 세계 225개국을 훑어 신규 시장을 발굴합니다. 인증키 없이 UN Comtrade 공개 데이터를 사용합니다.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": {
     "name": "Bonghyun Yang",
     "url": "https://github.com/bonghyunyang"
