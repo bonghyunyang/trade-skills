@@ -254,6 +254,18 @@ class TestOutputLocation(unittest.TestCase):
         from context import analyze, SKILL
         self.assertNotIn(SKILL.resolve(), Path(analyze.DEFAULT_OUTDIR).resolve().parents)
 
+    def test_every_scan_command_writes_a_file(self):
+        """스캔 결과를 세션 안에만 두면 사용자는 결과를 들고 있는 게 아니라
+        다시 물어봐야 한다. discover 가 그래서 10분을 날렸다. 명령이 늘 때마다
+        같은 자리를 빠뜨리므로 여기서 고정한다."""
+        source = (SKILL_SCRIPTS / "analyze.py").read_text(encoding="utf-8")
+        for command in ("market", "discover", "products"):
+            with self.subTest(command=command):
+                start = source.index(f"def cmd_{command}(")
+                end = source.index("def cmd_", start + 10)
+                self.assertIn("write_text", source[start:end],
+                              f"{command} 가 결과를 파일로 남기지 않습니다")
+
     def test_no_subcommand_falls_back_to_a_relative_default(self):
         """--outdir 기본값을 문자열로 박아 두면 새 서브커맨드가 조용히 되돌린다."""
         source = (SKILL_SCRIPTS / "analyze.py").read_text(encoding="utf-8")

@@ -271,10 +271,19 @@ def search_hs(keyword: str, level: int | None = None, limit: int = 25) -> list[d
 
 
 def hs_desc(code: str) -> str | None:
+    """설명만 돌려준다.
+
+    Comtrade 의 설명 문자열은 "85 - Electrical machinery..." 처럼 코드를 앞에
+    달고 온다. 표에는 코드 열이 이미 있어서 그대로 쓰면 한 줄에 코드가 두 번
+    나오고, 안 그래도 긴 영문 설명이 더 길어진다.
+    """
     code = str(code)
     for row in hs_table():
         if str(row.get("code")) == code:
-            return row.get("desc")
+            desc = row.get("desc")
+            if not desc:
+                return desc
+            return re.sub(rf"^\s*{re.escape(code)}\s*-\s*", "", desc)
     return None
 
 

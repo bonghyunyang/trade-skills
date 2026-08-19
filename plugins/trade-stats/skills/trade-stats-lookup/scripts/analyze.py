@@ -1215,6 +1215,39 @@ def cmd_discover(a) -> int:
     return 0
 
 
+def build_products_report(summary: dict) -> str:
+    """역방향 조회(나라 고정, 품목 열림) 결과를 파일로 남긴다.
+
+    discover 와 같은 이유다. 표를 만들어 놓고 세션 안에만 두면 사용자는 결과를
+    들고 있는 게 아니라 다시 물어봐야 한다.
+    """
+    def block(title, rows, growth_label="증감"):
+        L = [f"## {title}", "",
+             f"| # | HS | 품목 | 수출액 | {growth_label} |", "|---|---|---|---|---|"]
+        for i, r in enumerate(rows, 1):
+            g = r.get("growth_pct")
+            L.append(f"| {i} | {r['hs']} | {r.get('desc') or '-'} | "
+                     f"{fmt_usd(r.get('value_latest_usd'))} | "
+                     f"{'-' if g is None else f'{g:+.1f}%'} |")
+        return L + [""]
+
+    L = [f"# {summary['to']} — 한국이 이미 팔고 있는 품목", "",
+         f"- 기준 데이터: {summary.get('data_source', '')}",
+         f"- 대상 연도: {summary['latest_year']} (증감 기준 {summary['base_year']})",
+         f"- 생성일: {date.today().isoformat()}", ""]
+    L += block("1. 챕터(HS2) 규모 순", summary.get("chapters") or [])
+    L += block("2. 품목(HS4) 규모 순", summary.get("hs4_top_by_value") or [])
+    L += block("3. 뜨는 품목", summary.get("hs4_top_by_growth") or [], "성장률")
+    L += block("4. 꺾이는 품목", summary.get("hs4_declining") or [], "성장률")
+    note = (summary.get("hs4_coverage") or {}).get("note")
+    if note:
+        L += ["## 5. 이 표의 범위", "", note, ""]
+    L += ["> 이 목록은 **한국이 이미 수출 중인 품목**이다. 수요가 증명된 자리라는 뜻이지,",
+          "> 경쟁이 비어 있다는 뜻이 아니다. 후보를 좁혔으면 `market --hs <코드>` 로",
+          "> 그 나라의 경쟁 구도(1위 공급국·과점 여부)를 확인하라.", ""]
+    return "\n".join(L)
+
+
 def cmd_products(a) -> int:
     """Reverse lookup: country fixed, product open.
 
@@ -1334,6 +1367,15 @@ def cmd_products(a) -> int:
         },
         "data_source": "UN Comtrade, 한국 신고 수출(FOB) 기준",
     }
+
+    outdir = Path(a.outdir).expanduser().resolve()
+    outdir.mkdir(parents=True, exist_ok=True)
+    slug = (area.get("iso2") or str(area["code"])).lower()
+    report_path = outdir / f"products_{slug}.md"
+    report_path.write_text(build_products_report(summary), encoding="utf-8")
+    summary["outdir"] = str(outdir)
+    summary["report"] = str(report_path)
+
     json.dump(summary, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
@@ -1512,6 +1554,7 @@ def main() -> int:
     pr.add_argument("--top", type=int, default=20, help="각 랭킹의 품목 수 (기본 20)")
     pr.add_argument("--chapters", type=int, default=15,
                     help="HS4 상세를 조회할 수출액 상위 챕터 수 (기본 15, 챕터당 2콜)")
+    pr.add_argument("--outdir", default=DEFAULT_OUTDIR)
     pr.add_argument("--min-value", type=float, default=1_000_000,
                     help="성장률 랭킹에 넣을 최소 수출액 USD (기본 100만)")
     pr.add_argument("--quiet", action="store_true")

@@ -138,3 +138,14 @@ class TestKoreanCountryNames(unittest.TestCase):
             with self.subTest(code=code):
                 label = ct.ko_names()[code]
                 self.assertEqual(ct.resolve_area(label)["code"], code)
+
+
+class TestHsDescription(unittest.TestCase):
+    def test_description_does_not_repeat_the_code(self):
+        """Comtrade 는 "85 - Electrical machinery..." 로 코드를 붙여 보낸다.
+        표에는 코드 열이 이미 있어서 한 줄에 코드가 두 번 찍혔다."""
+        for code in ("85", "3304", "8507"):
+            with self.subTest(code=code):
+                desc = ct.hs_desc(code)
+                self.assertIsNotNone(desc)
+                self.assertFalse(desc.startswith(code), f"{code}: {desc[:40]}")
