@@ -74,7 +74,7 @@ for ref in ("areas.json", "hs.json", "hs_ko.json", "country_aliases_ko.json",
     if not (skill / "references" / ref).exists():
         sys.exit(f"참조 데이터 누락: {ref}")
 
-for script in ("comtrade.py", "fetch_comtrade.py", "analyze.py"):
+for script in ("comtrade.py", "fetch_comtrade.py", "analyze.py", "customs.py"):
     if not (skill / "scripts" / script).exists():
         sys.exit(f"스크립트 누락: {script}")
 
