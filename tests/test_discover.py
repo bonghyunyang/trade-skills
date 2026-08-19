@@ -126,6 +126,49 @@ class TestTruncationHandling(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
 
+class TestDiscoverReportFile(unittest.TestCase):
+    """6~10분짜리 조회 결과가 세션 안에만 있으면 안 된다.
+
+    실측에서 스캔이 백그라운드로 넘어간 사이 턴이 끝나 사용자는 아무것도 못 받았다.
+    캐시가 있으니 재실행은 빠르지만, 그건 다시 물어봐야 한다는 뜻이지 결과를 들고
+    있다는 뜻이 아니다.
+    """
+
+    def summary(self):
+        return {
+            "hs": "3304", "hs_desc": "beauty preparations",
+            "latest_year": 2025, "base_year": 2023,
+            "reporters_scanned": 225, "passed_min_market": 79, "shortlisted": 60,
+            "min_market_usd": 10_000_000.0,
+            "ranking": [
+                {"name": "키프로스", "iso2": "CY", "attractiveness_score": 79.6,
+                 "untapped_usd": 599_380_413.0, "market_size_usd": 605_068_052.0,
+                 "market_cagr": 1.64, "market_cagr_span": "2023–2025",
+                 "kr_import_usd": 5_709_621.0, "korea_share_pct": 0.94,
+                 "tags": ["미개척", "고성장", "집계주의"]},
+            ],
+            "score_note": None,
+            "method_note": "최신 연도만 전량 스캔했다.",
+            "next_step": "후보를 좁힌 뒤 market 으로 넘어가라.",
+            "limits": ["점유율은 수입 중 점유율이다."],
+            "data_source": "UN Comtrade",
+        }
+
+    def test_report_carries_the_tags_and_the_scan_range(self):
+        text = analyze.build_discover_report(self.summary())
+        self.assertIn("키프로스", text)
+        self.assertIn("집계주의", text)
+        self.assertIn("225개국", text)
+        self.assertIn("후보를 좁힌 뒤", text)
+
+    def test_report_states_what_the_scan_cannot_answer(self):
+        """순위만 남기면 '1위 나라로 가라'로 읽힌다. 경쟁 구도가 없다는 사실이
+        표와 같은 파일에 있어야 한다."""
+        text = analyze.build_discover_report(self.summary())
+        self.assertIn("이 표가 답하지 않는 것", text)
+        self.assertIn("점유율은 수입 중 점유율이다", text)
+
+
 class TestScanShape(unittest.TestCase):
     def test_market_size_and_korea_share_come_from_one_statistic(self):
         """Korea's declared exports are FOB and the importer's are CIF, so

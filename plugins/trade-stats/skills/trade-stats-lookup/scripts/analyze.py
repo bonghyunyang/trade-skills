@@ -1045,6 +1045,48 @@ def scan_world(hs: str, year: int, codes: list[int], log,
     return out
 
 
+def build_discover_report(summary: dict) -> str:
+    """발굴 스캔 결과를 파일로 남긴다.
+
+    6~10분짜리 조회인데 결과가 세션 안에만 있었다. 세션이 끊기면 통째로 사라지고,
+    실측에서 실제로 그랬다 — 스캔이 백그라운드로 넘어간 사이 턴이 끝나 사용자는
+    아무것도 못 받았다. 캐시가 있으니 재실행은 빠르지만, 그건 다시 물어봐야 한다는
+    뜻이지 결과를 들고 있다는 뜻이 아니다.
+    """
+    hs, desc = summary["hs"], summary.get("hs_desc") or ""
+    L = [f"# HS {hs} 신규 시장 발굴", "",
+         f"- 품목: {desc}",
+         "- 기준 데이터: UN Comtrade, 상대국 신고 수입(CIF)",
+         f"- 대상 연도: {summary['latest_year']} (성장률 기준 {summary['base_year']})",
+         f"- 스캔 범위: 전 보고국 {summary['reporters_scanned']}개국 → "
+         f"여유 시장 {fmt_usd(summary['min_market_usd'])} 이상 {summary['passed_min_market']}개국 → "
+         f"성장률 조회 {summary['shortlisted']}개국",
+         f"- 생성일: {date.today().isoformat()}", "",
+         "## 1. 후보 순위", "",
+         "| # | 국가 | 매력도 | **여유 시장** | 현지 총수입 | **시장 CAGR** | 한국 수출액 | 한국 점유율 | 태그 |",
+         "|---|---|---|---|---|---|---|---|---|"]
+    for i, e in enumerate(summary["ranking"], 1):
+        share = e.get("korea_share_pct")
+        L.append(
+            f"| {i} | {e['name']} | **{e['attractiveness_score']}** | "
+            f"**{fmt_usd(e.get('untapped_usd'))}** | {fmt_usd(e.get('market_size_usd'))} | "
+            f"**{fmt_pct(e.get('market_cagr'))}** | {fmt_usd(e.get('kr_import_usd'))} | "
+            f"{'-' if share is None else f'{share:.1f}%'} | {', '.join(e.get('tags') or []) or '-'} |")
+    if summary.get("score_note"):
+        L += ["", f"> ⚠️ {summary['score_note']}"]
+    L += ["",
+          "`미개척` 한국 점유율 1% 미만 · `초기진입` 5% 미만 · `고성장` 시장 CAGR 10% 이상 · "
+          "`시장축소` CAGR 음수 · `집계주의` 총수입이 과소·과대집계일 수 있음(단독 재조회 필요).",
+          "",
+          "## 2. 이 표가 답하지 않는 것", "",
+          summary["next_step"], "",
+          "## 3. 읽는 법", "",
+          summary["method_note"], ""]
+    L += [f"- {x}" for x in summary.get("limits") or []]
+    L += ["", f"데이터 출처: {summary.get('data_source', '')}"]
+    return "\n".join(L) + "\n"
+
+
 def cmd_discover(a) -> int:
     """어느 나라부터 뚫을지를 **전 세계에서** 찾는다.
 
@@ -1161,6 +1203,13 @@ def cmd_discover(a) -> int:
         ],
         "data_source": "UN Comtrade, 상대국 신고 수입(CIF) 기준 — 시장 규모와 한국 몫이 같은 통계 안에서 계산됨",
     }
+    outdir = Path(a.outdir).expanduser().resolve()
+    outdir.mkdir(parents=True, exist_ok=True)
+    report_path = outdir / f"hs{hs}_discover.md"
+    report_path.write_text(build_discover_report(summary), encoding="utf-8")
+    summary["outdir"] = str(outdir)
+    summary["report"] = str(report_path)
+
     json.dump(summary, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
@@ -1450,6 +1499,7 @@ def main() -> int:
     d.add_argument("--shortlist", type=int, default=60,
                    help="성장률을 조회할 후보국 수 (기본 60). 키우면 정확해지고 느려진다")
     d.add_argument("--latest-year", help="최신 연도 자동탐지 대신 고정")
+    d.add_argument("--outdir", default=DEFAULT_OUTDIR)
     d.add_argument("--quiet", action="store_true")
     d.set_defaults(fn=cmd_discover)
 
