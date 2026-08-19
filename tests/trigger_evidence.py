@@ -33,11 +33,16 @@ def classify(payload: dict) -> str | None:
     """캐시 한 건이 어느 명령에서 나온 호출인지 되짚는다.
 
     호출 모양이 명령마다 다르다.
-      discover : reporter 를 콤마로 묶어 여러 나라를 한 번에 부르거나,
-                 partner 에 World 와 한국을 같이 넣는다. 다른 명령은 안 그런다.
+      discover : reporter 를 콤마로 묶어 여러 나라를 한 번에 부른다. 이 모양은 다른
+                 명령이 절대 만들지 않아서 유일하게 확정적인 증거다.
       market   : 한국을 reporter 로 두고 상대국 전체를 부르거나(랭킹),
                  상대국 하나를 reporter 로 두고 공급국을 부른다(미러).
       products : 한국 reporter 에 cmdCode 가 AG2/AG4 집계다.
+
+    미러 한 건(상대국 reporter + partner 에 World·한국)은 두 명령이 똑같이 만든다.
+    이걸 discover 로 세면 market 실행이 discover 로 오염된다 — 실측에서 market 만
+    돈 케이스에 'discover 2건' 이 찍혀 판정을 흐렸다. 그래서 공용으로 표기하고,
+    가르는 건 규모에 맡긴다: discover 는 수십 건이 한꺼번에 쌓이고 market 은 몇 건이다.
     """
     rows = [r for r in (payload.get("data") or []) if isinstance(r, dict)]
     if not rows:
@@ -47,12 +52,14 @@ def classify(payload: dict) -> str | None:
     partners = {r.get("partnerCode") for r in rows}
     codes = {str(r.get("cmdCode") or "") for r in rows}
 
-    if len(reporters) > 1 or partners >= {WORLD, KOREA}:
-        return "discover"
+    if len(reporters) > 1:
+        return "discover(다중 reporter)"
     if reporters == {KOREA}:
         if any(c.startswith("AG") for c in codes):
             return "products"
         return "market(한국 수출 랭킹)"
+    if partners >= {WORLD, KOREA}:
+        return "미러(market·discover 공용)"
     return "market(상대국 미러)"
 
 

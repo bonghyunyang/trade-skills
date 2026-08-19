@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Market prioritisation report for one HS code.
 
-  python3 analyze.py market --hs 3907 --countries KZ,UZ,KG --outdir ./out
+  python3 analyze.py market --hs 3907 --countries KZ,UZ,KG
   python3 analyze.py market --hs 330499 --top 10 --years 4 --monthly 24
+
+Output lands in ~/trade-stats-out unless --outdir says otherwise.
 
 Writes CSVs plus a Korean markdown report, and prints a JSON summary so the
 calling agent can narrate without re-reading the files.
@@ -30,6 +32,12 @@ import comtrade as ct
 import customs as kcs
 
 KOREA = ct.KOREA
+
+# 리포트는 사용자 홈으로 나간다. 상대경로(`./trade-stats-out`)를 기본값으로 두면
+# 호출한 에이전트의 cwd 에 따라 **설치된 플러그인 폴더 안**에 리포트가 쌓인다.
+# 사용자는 못 찾고, 플러그인을 업데이트하면 통째로 날아간다. 실측에서 실제로
+# ~/.claude/plugins/.../scripts/ 밑에 리포트 9개가 생겼다.
+DEFAULT_OUTDIR = str(Path.home() / "trade-stats-out")
 
 
 # --------------------------------------------------------------------------
@@ -1425,7 +1433,7 @@ def main() -> int:
     s.add_argument("--no-competitors", action="store_true")
     s.add_argument("--csv", action="store_true",
                    help="원본 데이터 CSV도 저장 (기본은 리포트 md + JSON 요약만)")
-    s.add_argument("--outdir", default="./trade-stats-out")
+    s.add_argument("--outdir", default=DEFAULT_OUTDIR)
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_market)
 
@@ -1469,7 +1477,7 @@ def main() -> int:
     dm.add_argument("--top", type=int, default=15, help="국가당 상위 품목 수")
     dm.add_argument("--latest-month", help="최신월 자동탐지 대신 고정 (YYYYMM)")
     dm.add_argument("--csv", action="store_true")
-    dm.add_argument("--outdir", default="./trade-stats-out")
+    dm.add_argument("--outdir", default=DEFAULT_OUTDIR)
     dm.add_argument("--quiet", action="store_true")
     dm.set_defaults(fn=cmd_domestic)
 
