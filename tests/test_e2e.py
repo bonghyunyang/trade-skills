@@ -45,6 +45,13 @@ class TestMarketRun(unittest.TestCase):
         cls.result = run_market("--hs", "3907", "--countries", "VN,US,JP",
                                 "--years", "3", "--latest-year", "2025",
                                 "--outdir", cls.tmp)
+        # CSV is opt-in: the skill only passes --csv when the user asks for raw
+        # data. The default run above must therefore stay CSV-free, so the CSV
+        # contract is asserted against a second run in its own directory.
+        cls.csv_tmp = tempfile.mkdtemp(prefix="trade-e2e-csv-")
+        cls.csv_result = run_market("--hs", "3907", "--countries", "VN,US,JP",
+                                    "--years", "3", "--latest-year", "2025",
+                                    "--csv", "--outdir", cls.csv_tmp)
 
     def test_exits_clean(self):
         self.assertEqual(self.result["_rc"], 0)
@@ -54,23 +61,27 @@ class TestMarketRun(unittest.TestCase):
         self.assertIn("Polyacetals", self.result["hs_desc"])
         self.assertEqual(self.result["years"], [2023, 2024, 2025])
 
-    def test_writes_the_files_a_salesperson_opens(self):
+    def test_default_run_writes_the_report_and_no_unrequested_csv(self):
         names = set(self.result["files"])
         self.assertIn("hs3907_report.md", names)
+        self.assertEqual([n for n in names if n.endswith(".csv")], [])
+
+    def test_csv_flag_writes_the_files_a_salesperson_opens(self):
+        names = set(self.csv_result["files"])
         self.assertIn("hs3907_markets.csv", names)
         self.assertIn("hs3907_annual_series.csv", names)
+        self.assertIn("hs3907_columns.md", names)
 
     def test_csv_opens_in_excel_without_mojibake(self):
         """UTF-8 BOM is what makes Excel render Korean headers correctly."""
-        raw = (Path(self.tmp) / "hs3907_markets.csv").read_bytes()
+        raw = (Path(self.csv_tmp) / "hs3907_markets.csv").read_bytes()
         self.assertTrue(raw.startswith(b"\xef\xbb\xbf"))
 
     def test_every_country_is_ranked_with_a_stated_basis(self):
         for row in self.result["ranking"]:
             with self.subTest(country=row["country"]):
                 self.assertIn(row["score_basis"],
-                              {"full", "unscored", "n/a"} |
-                              {f"partial({n}/3축)" for n in (1, 2)})
+                              {"full", "unscored", "below_floor"})
 
     def test_country_names_are_korean(self):
         names = {r["country"] for r in self.result["ranking"]}
@@ -114,9 +125,12 @@ class TestMarketRun(unittest.TestCase):
         self.assertIn("시장 점유율", report)
         self.assertIn("현지 제조사", report)
 
-    def test_report_explains_the_score_is_relative(self):
+    def test_report_publishes_the_absolute_bands_behind_the_score(self):
+        """The score is an absolute grade now, so the report has to say what
+        scale it is on — otherwise '70점' is unreadable."""
         report = (Path(self.tmp) / "hs3907_report.md").read_text(encoding="utf-8")
-        self.assertIn("순위 자체가 뒤집힐 수 있다", report)
+        self.assertIn("두 축 모두 절대 기준", report)
+        self.assertIn("다른 조회에서 나온 점수와도 비교", report)
 
     def test_ranking_table_names_the_incumbent_supplier(self):
         """A 1.4% Korean share reads as headroom until you see China holds 87%.
@@ -179,14 +193,14 @@ class TestMarketRun(unittest.TestCase):
             self.assertLess(r, 2.0)
 
     def test_report_publishes_realized_axis_influence(self):
-        """The nominal 40/35/25 split states intent. What actually moved this
-        ranking can be far from it — headroom weighted 25% drove under 6% of a
-        real run — so both numbers have to appear."""
+        """The nominal 50/50 split states intent. What actually moved this
+        ranking can be far from it — countries pinned at the untapped ceiling
+        make that axis near-constant — so both numbers have to appear."""
         report = (Path(self.tmp) / "hs3907_report.md").read_text(encoding="utf-8")
         self.assertIn("실제로 순위를 움직인 비중", report)
 
     def test_annual_series_csv_has_one_row_per_country_year(self):
-        with (Path(self.tmp) / "hs3907_annual_series.csv").open(encoding="utf-8-sig") as fh:
+        with (Path(self.csv_tmp) / "hs3907_annual_series.csv").open(encoding="utf-8-sig") as fh:
             rows = list(csv.DictReader(fh))
         self.assertEqual(len(rows), 9)  # 3 countries x 3 years
 
@@ -209,9 +223,12 @@ class TestUnmeasurableTarget(unittest.TestCase):
         self.assertIsNone(ly["score"])
         self.assertTrue(ly["score_note"] or ly["competitor_note"])
 
-    def test_report_marks_it_as_excluded_not_as_worst(self):
+    def test_report_marks_it_as_unmeasured_not_as_worst(self):
+        """'측정불가'(모른다)와 '규모 미달'(안다, 작다)은 정반대 뜻이라 표에서
+        같은 칸을 쓰면 안 된다."""
         report = (Path(self.tmp) / "hs3907_report.md").read_text(encoding="utf-8")
-        self.assertIn("순위제외", report)
+        self.assertIn("측정불가", report)
+        self.assertIn("비교할 수 없다", report)
 
     def test_the_other_countries_still_get_real_scores(self):
         scored = [r for r in self.result["ranking"] if r["score"] is not None]

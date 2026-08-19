@@ -29,21 +29,47 @@ def scores(entries):
     return {e["name"]: e["attractiveness_score"] for e in entries}
 
 
-class TestSingleCountry(unittest.TestCase):
-    """Min-max normalizing one value collapses every axis to 0.5, so the score
-    was always exactly 50.0 — for a booming market and a dead one alike."""
+class TestAbsoluteScale(unittest.TestCase):
+    """Both axes are absolute. The old score min-max normalized size and growth
+    across whichever countries happened to be in the run, so adding one
+    unrelated country moved everyone's score — measured at up to 17.9pt, with
+    the top pick changing in 7.1% of random subsets. Nothing here may depend on
+    the comparison set."""
 
-    def test_one_country_gets_no_score(self):
+    def test_one_country_still_gets_a_score(self):
         entries = [entry("베트남", size=1e9, cagr=0.2, share=25.0)]
-        self.assertIsNone(scores(entries)["베트남"])
-        self.assertEqual(entries[0]["score_basis"], "n/a")
-        self.assertIn("1개", entries[0]["score_note"])
+        self.assertIsNotNone(scores(entries)["베트남"])
+        self.assertEqual(entries[0]["score_basis"], "full")
 
     def test_one_country_still_keeps_its_raw_metrics(self):
         entries = [entry("베트남", size=1e9, cagr=0.2, share=25.0)]
         analyze.score_markets(entries)
         self.assertEqual(entries[0]["market_size_usd"], 1e9)
         self.assertEqual(entries[0]["korea_share_pct"], 25.0)
+
+    def test_score_does_not_move_when_other_countries_join_the_run(self):
+        alone = [entry("베트남", size=1e9, cagr=0.05, share=25.0)]
+        crowd = [entry("베트남", size=1e9, cagr=0.05, share=25.0),
+                 entry("거대시장", size=5e10, cagr=0.45, share=1.0),
+                 entry("죽은시장", size=2e8, cagr=-0.60, share=90.0)]
+        self.assertEqual(scores(alone)["베트남"], scores(crowd)["베트남"])
+
+    def test_score_is_comparable_across_separate_runs(self):
+        """Same inputs, different runs, same number — that is what lets a user
+        say '이 시장 70점' and have it mean one thing."""
+        a = scores([entry("A", size=2e9, cagr=0.10, share=30.0),
+                    entry("B", size=1e8, cagr=-0.30, share=5.0)])
+        b = scores([entry("A", size=2e9, cagr=0.10, share=30.0),
+                    entry("C", size=9e9, cagr=0.02, share=50.0)])
+        self.assertEqual(a["A"], b["A"])
+
+    def test_growth_saturates_at_the_published_band(self):
+        r = scores([entry("폭발", size=1e9, cagr=5.0, share=10.0),
+                    entry("상한", size=1e9, cagr=analyze.GROWTH_CEIL, share=10.0),
+                    entry("붕괴", size=1e9, cagr=-0.9, share=10.0),
+                    entry("하한", size=1e9, cagr=analyze.GROWTH_FLOOR, share=10.0)])
+        self.assertEqual(r["폭발"], r["상한"])
+        self.assertEqual(r["붕괴"], r["하한"])
 
 
 class TestMeasurementParity(unittest.TestCase):
@@ -86,42 +112,53 @@ class TestMeasurementParity(unittest.TestCase):
         self.assertEqual(set(scores(entries).values()), {None})
 
 
-class TestComparabilityWarnings(unittest.TestCase):
-    def test_small_comparison_sets_carry_a_warning(self):
-        """With three countries the axes stretch across the full 0-100 range,
-        making a narrow real gap look decisive."""
+class TestScoreNote(unittest.TestCase):
+    def test_every_scored_entry_states_the_bands_it_was_measured_against(self):
+        """An absolute score is only readable if its scale is published."""
         entries = [entry("A", size=1e9, cagr=0.1, share=10.0),
-                   entry("B", size=9e8, cagr=0.09, share=11.0),
-                   entry("C", size=8e8, cagr=0.08, share=12.0)]
+                   entry("B", size=9e8, cagr=0.09, share=11.0)]
         analyze.score_markets(entries)
-        self.assertTrue(all(e.get("score_note") for e in entries))
-        self.assertIn("3개국", entries[0]["score_note"])
+        for e in entries:
+            self.assertIn("절대 기준", e["score_note"])
 
-    def test_large_comparison_sets_drop_the_small_set_warning(self):
-        entries = [entry(f"C{i}", size=1e9 - i * 1e7, cagr=0.1, share=10.0)
-                   for i in range(6)]
-        analyze.score_markets(entries)
-        self.assertFalse(any("개국뿐이라" in (e.get("score_note") or "") for e in entries))
-
-    def test_rank_instability_is_disclosed_at_every_set_size(self):
-        """Dropping one unrelated country from a real ten-country run flipped
-        four pairwise orderings. Min-max normalization makes that inherent, so
-        the caveat belongs on every result, not just small ones."""
+    def test_note_does_not_tell_users_to_rerun_with_a_different_set(self):
+        """The old note told users to rerun two or three times with different
+        comparison sets. That advice was correct then and is noise now — the
+        score cannot move. Leaving it in trains users to distrust a stable
+        number."""
         entries = [entry(f"C{i}", size=1e9 - i * 1e7, cagr=0.1 * i, share=5.0 * i)
                    for i in range(6)]
         analyze.score_markets(entries)
-        scored = [e for e in entries if e["attractiveness_score"] is not None]
-        self.assertTrue(scored)
-        for e in scored:
-            self.assertIn("순위 자체가 뒤집힐 수 있습니다", e["score_note"])
+        for e in entries:
+            self.assertNotIn("뒤집", e["score_note"])
 
 
 class TestAxisBehaviour(unittest.TestCase):
     def test_bigger_market_scores_higher_all_else_equal(self):
-        entries = [entry("큰시장", size=1e10, cagr=0.1, share=10.0),
-                   entry("작은시장", size=1e7, cagr=0.1, share=10.0)]
+        entries = [entry("큰시장", size=1e9, cagr=0.1, share=10.0),
+                   entry("작은시장", size=1e8, cagr=0.1, share=10.0)]
         r = scores(entries)
         self.assertGreater(r["큰시장"], r["작은시장"])
+
+    def test_size_stops_deciding_the_ranking_above_the_ceiling(self):
+        """The whole point of the ceiling. The old score tracked market size at
+        Spearman +0.891 across a real ten-country run — four minutes of waiting
+        to be told that big markets are big. Past the ceiling, growth decides."""
+        entries = [entry("거대·정체", size=6e10, cagr=0.0, share=10.0),
+                   entry("충분히큰·성장", size=2e10, cagr=0.18, share=10.0)]
+        r = scores(entries)
+        self.assertGreater(r["충분히큰·성장"], r["거대·정체"])
+
+    def test_tiny_market_is_excluded_as_small_not_as_unmeasured(self):
+        """'모른다'와 '안다, 작다'는 정반대다. 한 칸에 뭉뚱그리면 데이터 공백이
+        나쁜 시장으로 읽힌다."""
+        entries = [entry("초소형", size=5e6, cagr=0.5, share=10.0),
+                   entry("정상", size=1e9, cagr=0.1, share=10.0)]
+        analyze.score_markets(entries)
+        tiny = next(e for e in entries if e["name"] == "초소형")
+        self.assertIsNone(tiny["attractiveness_score"])
+        self.assertEqual(tiny["score_basis"], "below_floor")
+        self.assertIn("실제로 작은 시장", tiny["score_note"])
 
     def test_faster_growth_scores_higher_all_else_equal(self):
         entries = [entry("성장", size=1e9, cagr=0.30, share=10.0),
@@ -135,12 +172,25 @@ class TestAxisBehaviour(unittest.TestCase):
         r = scores(entries)
         self.assertGreater(r["여유있음"], r["포화"])
 
+    def test_untapped_folds_size_and_headroom_into_one_dollar_figure(self):
+        """A $10B market where Korea already holds 95% has less left on the
+        table than a $1B market where Korea holds nothing. Adding size and
+        headroom as separate axes let those two cancel; multiplying does not."""
+        entries = [entry("큰데_포화", size=1e10, cagr=0.1, share=95.0),
+                   entry("작은데_빈곳", size=1e9, cagr=0.1, share=0.0)]
+        analyze.score_markets(entries)
+        big, open_ = (next(e for e in entries if e["name"] == n)
+                      for n in ("큰데_포화", "작은데_빈곳"))
+        self.assertAlmostEqual(big["untapped_usd"], 5e8, delta=1.0)
+        self.assertAlmostEqual(open_["untapped_usd"], 1e9, delta=1.0)
+        self.assertGreater(open_["attractiveness_score"], big["attractiveness_score"])
+
     def test_weights_are_documented_on_every_entry(self):
         entries = [entry("A", size=1e9, cagr=0.1, share=10.0),
                    entry("B", size=5e8, cagr=0.2, share=20.0)]
         analyze.score_markets(entries)
         w = entries[0]["score_components"]["weights"]
-        self.assertEqual((w["size"], w["growth"], w["headroom"]), (0.40, 0.35, 0.25))
+        self.assertEqual((w["untapped"], w["growth"]), (0.5, 0.5))
         self.assertAlmostEqual(sum(w.values()), 1.0)
 
     def test_missing_growth_axis_excludes_rather_than_renormalizing(self):
@@ -177,17 +227,17 @@ class TestAxisBehaviour(unittest.TestCase):
         self.assertIsNone(rank_of("타깃", None), "결측 CAGR은 순위를 받을 수 없다")
 
     def test_realized_influence_is_reported_alongside_nominal_weights(self):
-        """Nominal 25% on headroom meant 5.9% of actual rank movement when every
-        country's Korea share sat between 1% and 15%. Publishing only the
-        nominal split overstates what that axis did."""
-        entries = [entry("A", size=1e10, cagr=0.5, share=10.0),
-                   entry("B", size=1e7, cagr=-0.3, share=11.0),
-                   entry("C", size=1e9, cagr=0.1, share=10.5)]
+        """Nominal weights state intent. An axis whose values barely differ in
+        this run moves the ranking hardly at all — several countries pinned at
+        the untapped ceiling put that axis in exactly that state."""
+        entries = [entry("A", size=4e10, cagr=0.5, share=10.0),
+                   entry("B", size=5e10, cagr=-0.3, share=10.0),
+                   entry("C", size=6e10, cagr=0.1, share=10.0)]
         analyze.score_markets(entries)
         infl = entries[0]["score_components"]["realized_influence"]
         self.assertAlmostEqual(sum(infl.values()), 1.0, places=2)
-        self.assertLess(infl["headroom"], 0.25,
-                        "점유율이 거의 같은 비교군에서 여유 축은 명목 25%보다 작게 작동해야 한다")
+        self.assertLess(infl["untapped"], 0.5,
+                        "전부 상한에 걸린 비교군에서 여유 축은 명목 50%보다 작게 작동해야 한다")
 
 
 class TestDerivedMetrics(unittest.TestCase):
