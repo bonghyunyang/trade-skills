@@ -435,7 +435,12 @@ def _f(row: dict, *keys: str) -> float | None:
 
 
 def _collapse_breakdowns(data: list[dict]) -> list[dict]:
-    """Keep one row per (period, partner, commodity).
+    """Keep one row per (period, reporter, partner, commodity).
+
+    The reporter belongs in the key even though most calls request a single one:
+    ``reporterCode`` accepts a comma list, and without it every reporter in such
+    a response collapses to one row — or worse, falls into the summing branch
+    below and returns the sum of 60 countries as if it were one country's total.
 
     Some reporters (Viet Nam, for one) return the partner total **and** its
     mode-of-transport breakdown in the same response. Viet Nam's 2023 imports of
@@ -449,7 +454,8 @@ def _collapse_breakdowns(data: list[dict]) -> list[dict]:
     """
     groups: dict[tuple, list[dict]] = {}
     for r in data:
-        key = (r.get("period"), r.get("partnerCode"), r.get("cmdCode"), r.get("flowCode"))
+        key = (r.get("period"), r.get("reporterCode"), r.get("partnerCode"),
+               r.get("cmdCode"), r.get("flowCode"))
         groups.setdefault(key, []).append(r)
 
     out = []
@@ -484,7 +490,7 @@ def fetch(
     *,
     freq: str,
     period: str | int,
-    reporter: int,
+    reporter: int | str,
     partner: int | None,
     hs: str,
     flow: str,

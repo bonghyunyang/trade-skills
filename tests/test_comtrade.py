@@ -154,6 +154,52 @@ class TestBreakdownCollapse(unittest.TestCase):
         ]
         self.assertEqual(len(ct._collapse_breakdowns(rows)), 2)
 
+    def test_distinct_reporters_are_never_merged(self):
+        """reporterCode takes a comma list, so one response can carry many
+        reporters. Keyed on partner alone they collapsed into a single row —
+        and where no aggregate row existed, into the *sum* of every country,
+        which reads as one country importing the whole world's volume."""
+        rows = [
+            {"period": "2024", "reporterCode": 56, "partnerCode": 0, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 0, "primaryValue": 1_188_042_813.0},
+            {"period": "2024", "reporterCode": 40, "partnerCode": 0, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 0, "primaryValue": 711_963_966.0},
+        ]
+        out = ct._collapse_breakdowns(rows)
+        self.assertEqual(len(out), 2)
+        self.assertEqual({r["reporterCode"] for r in out}, {56, 40})
+        self.assertNotIn("_summed_breakdown", out[0])
+
+    def test_transport_breakdown_still_collapses_within_one_reporter(self):
+        rows = [
+            {"period": "2024", "reporterCode": 704, "partnerCode": 410, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 0, "primaryValue": 127.0},
+            {"period": "2024", "reporterCode": 704, "partnerCode": 410, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 2100, "primaryValue": 110.0},
+            {"period": "2024", "reporterCode": 764, "partnerCode": 410, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 0, "primaryValue": 55.0},
+        ]
+        out = ct._collapse_breakdowns(rows)
+        self.assertEqual(len(out), 2)
+        self.assertEqual(sorted(r["primaryValue"] for r in out), [55.0, 127.0])
+
+    def test_truncated_response_marks_summed_rows_as_partial(self):
+        """The flag the discovery scan relies on. When the 500-row cap eats a
+        reporter's aggregate row, the remaining transport rows get summed into
+        something that looks like a total but undercounts — Malaysia's 2023
+        imports came back as $75.6M against a true $548.8M, which turned a
+        +6.7% CAGR into +187%."""
+        rows = [
+            {"period": "2023", "reporterCode": 458, "partnerCode": 0, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 2100, "primaryValue": 60.0},
+            {"period": "2023", "reporterCode": 458, "partnerCode": 0, "cmdCode": "3304",
+             "flowCode": "M", "motCode": 1000, "primaryValue": 15.6},
+        ]
+        out = ct._collapse_breakdowns(rows)
+        self.assertEqual(len(out), 1)
+        self.assertAlmostEqual(out[0]["primaryValue"], 75.6)
+        self.assertEqual(out[0]["_summed_breakdown"], 2)
+
     def test_vietnam_fixture_has_no_duplicate_partners(self):
         context.block_network()
         rows = ct.fetch(freq="A", period=2023, reporter=704, partner=None,

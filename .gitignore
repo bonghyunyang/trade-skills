@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .omc/
+.gjc/
 trade-stats-out/
 .DS_Store
 dist/
