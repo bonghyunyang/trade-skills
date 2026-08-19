@@ -566,7 +566,7 @@ python3 fetch_comtrade.py mirror --hs 3907 --importer VN --year 2024
 
 ```bash
 python3 tests/record_fixtures.py   # 최초 1회 (픽스처는 레포에 없습니다)
-./tests/run_tests.sh               # 오프라인 105개, 네트워크 불필요
+./tests/run_tests.sh               # 오프라인 139개, 네트워크 불필요
 ./tests/run_tests.sh --live        # + 실제 API 계약 검증
 ./package.sh                       # 검증 후 배포용 zip 생성
 ```
@@ -590,7 +590,7 @@ trade-skills/
 │  ├─ SKILL.md
 │  ├─ scripts/      comtrade.py, customs.py, fetch_comtrade.py, analyze.py, tariff.py
 │  └─ references/   한국어 HS 색인, 국가 코드, 데이터 주의사항
-├─ tests/           오프라인 105개 + 라이브 계약 7개
+├─ tests/           오프라인 139개 + 라이브 계약 12개
 └─ package.sh       검증 + zip 생성
 ```
 
@@ -821,7 +821,7 @@ shared office IP; set `TRADE_STATS_CONTACT` so the publisher can reach you.
 
 ```bash
 python3 tests/record_fixtures.py   # once — fixtures are gitignored
-./tests/run_tests.sh               # 105 offline tests, no network
+./tests/run_tests.sh               # 139 offline tests, no network
 ./tests/run_tests.sh --live        # + real API contract tests
 ./package.sh                       # verify, then build the zip
 ```
