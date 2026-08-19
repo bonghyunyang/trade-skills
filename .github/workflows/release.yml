@@ -1,0 +1,74 @@
+name: release
+
+# README의 설치 안내(A경로)는 Releases에 붙은 zip을 받으라고 합니다. 그 zip을 손으로
+# 올리면 태그와 내용이 어긋나는 순간이 생깁니다. 태그를 밀면 여기서 검증하고 빌드해서
+# 붙입니다. 사람이 하는 일은 `git tag v0.2.0 && git push origin v0.2.0` 하나입니다.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "이미 존재하는 태그 이름 (예: v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache recorded fixtures
+        id: fixtures
+        uses: actions/cache@v4
+        with:
+          path: tests/fixtures/cache
+          key: comtrade-fixtures-v1
+
+      - name: Record fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true'
+        env:
+          TRADE_STATS_CONTACT: https://github.com/bonghyunyang/trade-skills
+        run: python3 tests/record_fixtures.py
+
+      # package.sh 가 테스트와 SKILL.md 길이 검사를 먼저 돌리고 zip 을 만듭니다.
+      # 깨진 스킬이 Releases 에 붙는 경로를 남기지 않기 위해 여기서 한 번 더 겁니다.
+      - name: Verify and build
+        run: ./package.sh
+
+      - name: Check the tag matches the declared version
+        # 태그는 v0.2.0 인데 plugin.json 이 0.1.0 이면 마켓플레이스가 업데이트를
+        # 잡지 못합니다. 조용히 어긋나는 종류라 릴리스를 세웁니다.
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          DECLARED=$(python3 -c "import json;print(json.load(open('plugins/trade-stats/.claude-plugin/plugin.json'))['version'])")
+          MARKET=$(python3 -c "import json;print(json.load(open('.claude-plugin/marketplace.json'))['plugins'][0]['version'])")
+          echo "tag=$TAG plugin.json=$DECLARED marketplace.json=$MARKET"
+          if [ "$TAG" != "v$DECLARED" ] || [ "$DECLARED" != "$MARKET" ]; then
+            echo "::error::태그($TAG)와 선언된 버전(plugin.json=$DECLARED, marketplace.json=$MARKET)이 다릅니다."
+            exit 1
+          fi
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          gh release create "$TAG" dist/trade-stats-lookup.zip \
+            --title "$TAG" \
+            --generate-notes \
+            --notes-start-tag "$(git tag --sort=-v:refname | sed -n 2p)" || \
+          gh release upload "$TAG" dist/trade-stats-lookup.zip --clobber
