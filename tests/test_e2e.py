@@ -18,6 +18,7 @@ from pathlib import Path
 
 import context
 from context import ct
+from context import SCRIPTS as SKILL_SCRIPTS
 
 
 def run_market(*args) -> dict:
@@ -233,6 +234,30 @@ class TestUnmeasurableTarget(unittest.TestCase):
     def test_the_other_countries_still_get_real_scores(self):
         scored = [r for r in self.result["ranking"] if r["score"] is not None]
         self.assertEqual(len(scored), 2)
+
+
+class TestOutputLocation(unittest.TestCase):
+    """리포트는 사용자 홈으로 나가야 한다.
+
+    기본값이 상대경로였을 때 실제로 설치된 스킬의 scripts/ 밑에 리포트가 쌓였다.
+    SKILL.md 가 `cd <스킬 경로>/scripts` 를 시키니 에이전트의 cwd 가 거기이기
+    때문이다. 플러그인을 업데이트하면 통째로 사라지고, 그 전에 사용자가 찾지도
+    못한다. 스킬이 자기 설치 폴더에 산출물을 쓰면 안 된다.
+    """
+
+    def test_default_outdir_is_absolute(self):
+        from context import analyze
+        self.assertTrue(Path(analyze.DEFAULT_OUTDIR).is_absolute(),
+                        f"기본 출력 경로가 상대경로입니다: {analyze.DEFAULT_OUTDIR}")
+
+    def test_default_outdir_is_not_inside_the_skill(self):
+        from context import analyze, SKILL
+        self.assertNotIn(SKILL.resolve(), Path(analyze.DEFAULT_OUTDIR).resolve().parents)
+
+    def test_no_subcommand_falls_back_to_a_relative_default(self):
+        """--outdir 기본값을 문자열로 박아 두면 새 서브커맨드가 조용히 되돌린다."""
+        source = (SKILL_SCRIPTS / "analyze.py").read_text(encoding="utf-8")
+        self.assertNotIn('default="./', source)
 
 
 class TestInputErrors(unittest.TestCase):
