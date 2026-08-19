@@ -11,6 +11,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+# shellcheck source=tests/python.sh
+. ./tests/python.sh
+
 SKILL_DIR="plugins/trade-stats/skills/trade-stats-lookup"
 DIST="dist"
 ZIP="$DIST/trade-stats-lookup.zip"
@@ -28,7 +31,7 @@ fi
 # is the one thing this gate exists to prevent — so this is fatal, not a warning.
 if [ ! -d tests/fixtures/cache ] || [ -z "$(ls -A tests/fixtures/cache 2>/dev/null)" ]; then
   echo "픽스처가 없어 테스트를 실행할 수 없습니다. 먼저 실행하세요:" >&2
-  echo "  python3 tests/record_fixtures.py" >&2
+  echo "  $PY tests/record_fixtures.py" >&2
   exit 1
 fi
 
@@ -39,7 +42,8 @@ fi
 }
 echo "  테스트 통과"
 
-python3 - <<'PY'
+# shellcheck disable=SC2086
+$PY - <<'PYCHECK'
 import json, re, sys
 from pathlib import Path
 
@@ -80,7 +84,7 @@ for script in ("comtrade.py", "fetch_comtrade.py", "analyze.py", "customs.py"):
 
 print(f"  SKILL.md 본문 {lines}줄, description {len(desc.group(1))}자")
 print("  참조 데이터·스크립트 확인")
-PY
+PYCHECK
 
 echo "== 패키징 =="
 rm -rf "$DIST"
@@ -98,12 +102,25 @@ tar -cf - -C "$SKILL_DIR" \
 # nowhere in sight. Attribution has to ride along with the bundled data.
 cp LICENSE NOTICE "$STAGE/trade-stats-lookup/"
 
-(cd "$STAGE" && zip -qr "trade-stats-lookup.zip" "trade-stats-lookup")
+# 윈도우에는 zip/unzip 이 없다. 파이썬 표준 라이브러리로 같은 zip 을 만든다 —
+# 배포본을 만들려고 별도 도구를 깔게 만들 이유가 없다.
+if command -v zip >/dev/null 2>&1; then
+  (cd "$STAGE" && zip -qr "trade-stats-lookup.zip" "trade-stats-lookup")
+else
+  # shellcheck disable=SC2086
+  (cd "$STAGE" && $PY -m zipfile -c "trade-stats-lookup.zip" "trade-stats-lookup")
+fi
 mv "$STAGE/trade-stats-lookup.zip" "$ZIP"
 
 echo
 echo "생성: $ZIP ($(du -h "$ZIP" | cut -f1))"
-# `head -n -2` is GNU-only; awk keeps this working on macOS too.
-unzip -l "$ZIP" | awk '/^ *[0-9]+ /{print "  " $4}'
+# shellcheck disable=SC2086
+$PY - "$ZIP" <<'PYLIST'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as z:
+    for name in sorted(z.namelist()):
+        if not name.endswith("/"):
+            print("  " + name)
+PYLIST
 echo
 echo "업로드: claude.ai 또는 Cowork → Settings → Capabilities → Skills → Upload"
