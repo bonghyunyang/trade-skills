@@ -146,6 +146,11 @@ def resolve_area(token: str | int) -> dict:
                 "reporter": False, "partner": True}
 
     alias = ko_aliases().get(key)
+    if alias is None:
+        # 화면에 "키프로스"로 보여준 이름은 그대로 다시 입력할 수 있어야 한다.
+        # 별칭 파일은 손으로 관리하는 거라 항상 표시명보다 짧다 — 발굴 결과에 뜬
+        # 나라를 이어서 market 으로 볼 때 그 간극이 그대로 에러가 된다.
+        alias = ko_name_index().get(key)
     if alias is not None:
         for a in areas():
             if a["code"] == alias:
@@ -562,6 +567,17 @@ def ko_names() -> dict[int, str]:
         raw = json.loads((REF_DIR / "country_names_ko.json").read_text(encoding="utf-8"))
         _ko_names = {int(k): v for k, v in raw.items()}
     return _ko_names
+
+
+_ko_name_index: dict[str, int] | None = None
+
+
+def ko_name_index() -> dict[str, int]:
+    """한국어 표시명 → 국가코드. 표시에 쓰는 이름을 입력으로도 받기 위해 뒤집는다."""
+    global _ko_name_index
+    if _ko_name_index is None:
+        _ko_name_index = {_norm(v): k for k, v in ko_names().items()}
+    return _ko_name_index
 
 
 def area_name(code: Any) -> str | None:

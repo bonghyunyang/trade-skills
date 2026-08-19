@@ -115,3 +115,26 @@ class TestIndexIntegrity(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKoreanCountryNames(unittest.TestCase):
+    """발굴 스캔이 뱉는 이름은 전부 한국어여야 하고, 그대로 되입력돼야 한다.
+
+    discover 는 225개 보고국을 훑는데 한국어 이름은 120개만 있었다. 그래서
+    상위 20개 안에 'Cyprus' 가 섞여 나왔다. 더 나쁜 건 그다음이다 — 사용자가
+    그 이름을 그대로 `--countries 키프로스` 로 넘기면 국가를 못 찾고 죽었다.
+    표시명과 입력 사전이 갈라져 있었기 때문이다.
+    """
+
+    def test_every_reporter_has_a_korean_label(self):
+        missing = [(a["code"], a["name"]) for a in ct.areas()
+                   if a.get("reporter") and not a.get("historical")
+                   and a["code"] not in ct.ko_names()]
+        self.assertEqual(missing, [], f"한국어 이름이 없는 보고국: {missing}")
+
+    def test_display_names_resolve_back_to_the_same_country(self):
+        """이름 하나를 추가하면 입력으로도 즉시 살아나야 한다."""
+        for code in (196, 748, 807, 626, 446, 398):
+            with self.subTest(code=code):
+                label = ct.ko_names()[code]
+                self.assertEqual(ct.resolve_area(label)["code"], code)
