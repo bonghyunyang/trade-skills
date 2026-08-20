@@ -103,15 +103,19 @@ def reports(since: float) -> list[str]:
         if resolved in seen or not resolved.is_dir():
             continue
         seen.add(resolved)
-        for path in resolved.rglob("hs*_report.md"):
-            # 깊이 제한이 없으면 홈 디렉토리 전체를 훑다가 멈추지 않는다.
-            if len(path.relative_to(resolved).parts) > 4:
-                continue
-            try:
-                if path.stat().st_mtime >= since:
-                    out.append(str(path))
-            except OSError:
-                continue
+        # market 은 hs<코드>_report.md, discover 는 hs<코드>_discover.md,
+        # products 는 products_<iso2>.md 를 남긴다. 하나만 보면 나머지 두 명령이
+        # 끝까지 갔는지 알 수 없다 — 실제로 discover 리포트를 0건으로 세고 있었다.
+        for pattern in ("hs*_report.md", "hs*_discover.md", "products_*.md"):
+            for path in resolved.rglob(pattern):
+                # 깊이 제한이 없으면 홈 디렉토리 전체를 훑다가 멈추지 않는다.
+                if len(path.relative_to(resolved).parts) > 4:
+                    continue
+                try:
+                    if path.stat().st_mtime >= since:
+                        out.append(str(path))
+                except OSError:
+                    continue
     return sorted(set(out))
 
 
