@@ -348,7 +348,7 @@ Claude가 먼저 품목 코드를 확인합니다.
 
 > **나**: 화장품 어디 새로 뚫을 데 없나? 안 가본 나라로
 
-> **Claude**: 전 세계 225개국을 훑겠습니다. 6~10분 걸립니다. 진행할까요?
+> **Claude**: 전 세계 225개국을 훑겠습니다. 10~15분 걸리고, 한 번에 안 끝나면 이어서 더 돌립니다. 진행할까요?
 
 > **나**: ㅇㅇ
 
@@ -549,7 +549,7 @@ cd plugins/trade-stats/skills/trade-stats-lookup/scripts
 
 python3 analyze.py market   --hs 3907                    # 상위 10개 교역국 (3~5분)
 python3 analyze.py market   --hs 3304 --countries 베트남,인도 --monthly 24
-python3 analyze.py discover --hs 3304                    # 전 세계 225개국 발굴 (6~10분)
+python3 analyze.py discover --hs 3304                    # 전 세계 225개국 발굴 (첫 조회 10~15분)
 python3 analyze.py discover --hs 3304 --min-market 1000000   # 소량 품목이면 기준선을 낮춘다
 python3 fetch_comtrade.py hs-search "화장품"             # HS코드 찾기
 python3 fetch_comtrade.py rank   --hs 3907 --year 2025
