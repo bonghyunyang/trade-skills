@@ -127,7 +127,7 @@ class TestTruncationHandling(unittest.TestCase):
 
 
 class TestDiscoverReportFile(unittest.TestCase):
-    """6~10분짜리 조회 결과가 세션 안에만 있으면 안 된다.
+    """스캔 결과가 세션 안에만 있으면 안 된다.
 
     실측에서 스캔이 백그라운드로 넘어간 사이 턴이 끝나 사용자는 아무것도 못 받았다.
     캐시가 있으니 재실행은 빠르지만, 그건 다시 물어봐야 한다는 뜻이지 결과를 들고
@@ -138,7 +138,7 @@ class TestDiscoverReportFile(unittest.TestCase):
         return {
             "hs": "3304", "hs_desc": "beauty preparations",
             "latest_year": 2025, "base_year": 2023,
-            "reporters_scanned": 225, "passed_min_market": 79, "shortlisted": 60,
+            "reporters_scanned": 225, "passed_min_market": 79,
             "min_market_usd": 10_000_000.0,
             "ranking": [
                 {"name": "키프로스", "iso2": "CY", "attractiveness_score": 79.6,

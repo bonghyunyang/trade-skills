@@ -348,7 +348,7 @@ Claude가 먼저 품목 코드를 확인합니다.
 
 > **나**: 화장품 어디 새로 뚫을 데 없나? 안 가본 나라로
 
-> **Claude**: 전 세계 225개국을 훑겠습니다. 10~15분 걸리고, 한 번에 안 끝나면 이어서 더 돌립니다. 진행할까요?
+> **Claude**: 전 세계 225개국을 훑겠습니다. 1~2분 걸립니다. 진행할까요?
 
 > **나**: ㅇㅇ
 
@@ -549,7 +549,7 @@ cd plugins/trade-stats/skills/trade-stats-lookup/scripts
 
 python3 analyze.py market   --hs 3907                    # 상위 10개 교역국 (3~5분)
 python3 analyze.py market   --hs 3304 --countries 베트남,인도 --monthly 24
-python3 analyze.py discover --hs 3304                    # 전 세계 225개국 발굴 (첫 조회 10~15분)
+python3 analyze.py discover --hs 3304                    # 전 세계 225개국 발굴 (1~2분)
 python3 analyze.py discover --hs 3304 --min-market 1000000   # 소량 품목이면 기준선을 낮춘다
 python3 fetch_comtrade.py hs-search "화장품"             # HS코드 찾기
 python3 fetch_comtrade.py rank   --hs 3907 --year 2025
@@ -682,7 +682,7 @@ Built for Korean exporters: `reporter` is fixed to Korea and the reports are in 
 |  | Command | Coverage | Time |
 |---|---|---|---|
 | Rank markets you already know | `market` | Named countries, or Korea's top 10 partners | 3–5 min |
-| **Find markets you have never sold to** | `discover` | **All 225 Comtrade reporters** | 6–10 min |
+| **Find markets you have never sold to** | `discover` | **All 225 Comtrade reporters** | 1-2 min |
 
 The default target list is Korea's top 10 trading partners, which are by definition
 countries you already sell to — no new market can come out of that set. `discover`
@@ -809,7 +809,7 @@ customs authority.
 ```bash
 cd plugins/trade-stats/skills/trade-stats-lookup/scripts
 python3 analyze.py market   --hs 3907    # rank a known shortlist (3-5 min)
-python3 analyze.py discover --hs 3304    # scan all 225 reporters (6-10 min)
+python3 analyze.py discover --hs 3304    # scan all 225 reporters (1-2 min)
 python3 fetch_comtrade.py hs-search "화장품"
 ```
 

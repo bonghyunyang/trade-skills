@@ -961,7 +961,12 @@ def discover_reporters() -> list[dict]:
             and a["code"] != KOREA and a["code"] not in AGGREGATE_REPORTERS]
 
 
-DISCOVER_BATCH = 8
+# Two rows per reporter (World + Korea) now that comtrade.py asks for the
+# aggregate series only, so 50 reporters fill 100 of the 500-row preview cap.
+# At batch 8 this scan was 28 calls plus ~120 re-queries for reporters that the
+# truncated responses had dropped; measured cold it took 13m54s and could not
+# finish inside one Bash call.
+DISCOVER_BATCH = 50
 
 
 def scan_world(hs: str, year: int, codes: list[int], log,
@@ -1048,7 +1053,7 @@ def scan_world(hs: str, year: int, codes: list[int], log,
 def build_discover_report(summary: dict) -> str:
     """발굴 스캔 결과를 파일로 남긴다.
 
-    6~10분짜리 조회인데 결과가 세션 안에만 있었다. 세션이 끊기면 통째로 사라지고,
+    결과가 세션 안에만 있었다. 세션이 끊기면 통째로 사라지고,
     실측에서 실제로 그랬다 — 스캔이 백그라운드로 넘어간 사이 턴이 끝나 사용자는
     아무것도 못 받았다. 캐시가 있으니 재실행은 빠르지만, 그건 다시 물어봐야 한다는
     뜻이지 결과를 들고 있다는 뜻이 아니다.
@@ -1058,9 +1063,9 @@ def build_discover_report(summary: dict) -> str:
          f"- 품목: {desc}",
          "- 기준 데이터: UN Comtrade, 상대국 신고 수입(CIF)",
          f"- 대상 연도: {summary['latest_year']} (성장률 기준 {summary['base_year']})",
-         f"- 스캔 범위: 전 보고국 {summary['reporters_scanned']}개국 → "
-         f"여유 시장 {fmt_usd(summary['min_market_usd'])} 이상 {summary['passed_min_market']}개국 → "
-         f"성장률 조회 {summary['shortlisted']}개국",
+         f"- 스캔 범위: {summary['latest_year']}년 데이터를 올린 보고국 "
+         f"{summary['reporters_scanned']}개국 → 여유 시장 "
+         f"{fmt_usd(summary['min_market_usd'])} 이상 {summary['passed_min_market']}개국 전량 성장률 조회",
          f"- 생성일: {date.today().isoformat()}", "",
          "## 1. 후보 순위", "",
          "| # | 국가 | 매력도 | **여유 시장** | 현지 총수입 | **시장 CAGR** | 한국 수출액 | 한국 점유율 | 태그 |",
@@ -1103,11 +1108,10 @@ def cmd_discover(a) -> int:
     base = latest - a.years_gap
     codes = [x["code"] for x in discover_reporters()]
 
-    # 성장률을 전 세계에서 구하려면 연도마다 전량 스캔이 필요하고, 그러면 콜 수가
-    # 두 배가 된다(실측: 무료 티어에서 15분 이상). 최신 연도만 전량 훑어 여유 시장
-    # 기준 후보를 추린 뒤, 과거 연도는 그 후보에만 물어본다. 잘려나간 나라가 최종
-    # 상위권에 들어오려면 성장 축 만점을 받고도 여유 축에서 후보군 최하위를 이겨야
-    # 하므로, 후보군을 최종 출력의 3배로 잡아 그 여지를 남긴다.
+    # 두 연도 모두 전량 스캔한다. 집계 시리즈만 요청하면 배치 하나에 50개국이
+    # 들어가 연도당 5콜이라, 예전처럼 후보를 추려 과거 연도 조회를 아낄 이유가 없다.
+    # 추리면 '여유 시장은 작지만 빠르게 크는 시장'이 성장률 조회에서 빠져 순위에
+    # 아예 못 올라왔다 — 이 명령이 찾으라는 게 정확히 그런 시장이다.
     log(f"1단계 — {latest}년 전 세계 스캔: {len(codes)}개국 "
         f"(배치 {DISCOVER_BATCH}, 약 {-(-len(codes) // DISCOVER_BATCH)}콜)")
     cur = scan_world(hs, latest, codes, log)
@@ -1120,14 +1124,13 @@ def cmd_discover(a) -> int:
 
     pool = sorted(((c, r) for c, r in cur.items() if (untapped_of(r) or 0) >= a.min_market),
                   key=lambda kv: -(untapped_of(kv[1]) or 0))
-    shortlist = [c for c, _ in pool[:a.shortlist]]
-    log(f"2단계 — 여유 시장 {fmt_usd(a.min_market)} 이상 {len(pool)}개국 중 상위 "
-        f"{len(shortlist)}개국만 {base}년 재조회 "
-        f"(약 {-(-len(shortlist) // DISCOVER_BATCH)}콜)")
-    old = scan_world(hs, base, shortlist, log)
+    ranked_codes = [c for c, _ in pool]
+    log(f"2단계 — 여유 시장 {fmt_usd(a.min_market)} 이상 {len(pool)}개국의 {base}년 조회 "
+        f"(약 {-(-len(ranked_codes) // DISCOVER_BATCH)}콜)")
+    old = scan_world(hs, base, ranked_codes, log)
 
     entries = []
-    for code in shortlist:
+    for code in ranked_codes:
         rec = cur[code]
         total, from_kr = rec["total"], rec["from_korea"]
         prev = (old.get(code) or {}).get("total")
@@ -1174,7 +1177,6 @@ def cmd_discover(a) -> int:
         "latest_year": latest, "base_year": base,
         "reporters_scanned": len(cur),
         "passed_min_market": len(pool),
-        "shortlisted": len(shortlist),
         "ranked": len(ranked),
         "min_market_usd": a.min_market,
         "ranking": [{k: e[k] for k in
@@ -1187,11 +1189,11 @@ def cmd_discover(a) -> int:
             "no_growth_data": sum(1 for e in entries if e.get("score_basis") == "unscored"),
         },
         "score_note": top[0]["score_note"] if top else None,
-        "method_note": (f"{latest}년은 {len(cur)}개 보고국 전량을 훑었고, {base}년 성장률은 "
-                        f"여유 시장 상위 {len(shortlist)}개국만 조회했습니다. 전량 2회 스캔은 "
-                        f"무료 공개 티어에서 15분 이상 걸립니다. 후보군 밖 국가가 최종 상위권에 "
-                        f"들 여지는 남겨두었지만, 여유 시장이 아주 작은 고성장 시장은 빠질 수 "
-                        f"있습니다 — 그런 틈새를 노린다면 --shortlist 를 키우세요."),
+        "method_note": (f"{latest}년 데이터를 올린 {len(cur)}개 보고국을 전량 훑고, 여유 시장 "
+                        f"{fmt_usd(a.min_market)} 이상인 {len(pool)}개국 전부에 대해 {base}년을 "
+                        f"다시 조회해 성장률을 냈습니다. 후보를 미리 추리지 않으므로 '규모는 작지만 "
+                        f"빠르게 크는 시장'도 순위에 올라옵니다. 빠지는 것은 여유 시장이 하한에 "
+                        f"못 미치는 나라와 {base}년 통계를 아직 안 올린 나라뿐입니다."),
         "next_step": (f"후보를 2~5개국으로 좁힌 뒤 `market --hs {hs} --countries <국가들>` 로 "
                       f"넘어가라. 경쟁 구도(1위 공급국·과점 여부)와 한국 수출 추이는 이 스캔에 "
                       f"없다 — 여기서 나온 순위는 '어디를 들여다볼지'까지만 답한다."),
@@ -1538,8 +1540,6 @@ def main() -> int:
     d.add_argument("--min-market", type=float, default=UNTAPPED_FLOOR,
                    help=f"여유 시장 하한 USD (기본 {UNTAPPED_FLOOR:,.0f}). "
                         f"소량·고단가 품목이면 낮춰라")
-    d.add_argument("--shortlist", type=int, default=60,
-                   help="성장률을 조회할 후보국 수 (기본 60). 키우면 정확해지고 느려진다")
     d.add_argument("--latest-year", help="최신 연도 자동탐지 대신 고정")
     d.add_argument("--outdir", default=DEFAULT_OUTDIR)
     d.add_argument("--quiet", action="store_true")

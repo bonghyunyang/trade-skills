@@ -222,12 +222,17 @@ class TestBreakdownCollapse(unittest.TestCase):
         """The cross-check that makes the 500-row cap measurable rather than
         merely suspected.
 
-        Coverage is deliberately asserted as a range, not a constant. The same
-        India request returns a *different* 500-row subset each time — measured
-        at 97.04% and 100.00% on identical calls — because truncation can drop a
-        partner's aggregate row and leave its transport breakdowns behind. The
-        contract is "we detect and report the shortfall", not "the shortfall is
-        always the same size".
+        India used to be the worked example of the cap biting: the same request
+        returned a different 500-row subset each time (97.04% and 100.00%
+        coverage on identical calls) because truncation dropped a partner's
+        aggregate row and left its transport breakdowns behind. Requesting the
+        aggregate series only (partner2Code/motCode/customsCode) removed the
+        breakdown rows that filled the cap, so the response is now complete and
+        coverage is stable.
+
+        The assertion is therefore the stronger one: full coverage and no
+        truncation flag. If this fails, a response outgrew the 500-row cap again
+        and every share computed from it is quietly short.
         """
         context.block_network()
         rows = [r for r in ct.fetch(freq="A", period=2024, reporter=699, partner=None,
@@ -236,10 +241,10 @@ class TestBreakdownCollapse(unittest.TestCase):
         world = ct.fetch(freq="A", period=2024, reporter=699, partner=0,
                          hs="3907", flow="M")
         coverage = sum(r["value_usd"] or 0 for r in rows) / world[0]["value_usd"]
-        self.assertGreater(coverage, 0.90)
+        self.assertGreater(coverage, 0.97)
         self.assertLessEqual(coverage, 1.001)
-        self.assertTrue(any(r.get("_truncated") for r in rows),
-                        "인도 응답은 500행 상한에 걸려야 한다 (픽스처가 오래됐을 수 있음)")
+        self.assertFalse(any(r.get("_truncated") for r in rows),
+                         "집계 시리즈만 요청하면 500행 상한에 걸리지 않아야 한다")
 
     def test_undercounted_partners_are_flagged_not_silently_trusted(self):
         """When truncation removes a partner's aggregate row, the summed

@@ -57,6 +57,17 @@ PREVIEW_ROW_CAP = 500
 WORLD = 0
 KOREA = 410
 
+# Ask for the aggregate series only. Without these the preview endpoint returns
+# one row per (2nd partner x mode of transport x customs procedure), which is
+# how a single country can fill the 500-row cap by itself: Slovenia's HS3304
+# import row set is 500 rows of partner2 detail, and summing what survives the
+# cap gives $619M against a real $124M. Malaysia 2023 came back as $75.6M
+# against a real $548.8M the same way. Both are silent wrong answers, not
+# errors. C00 / 0 / 0 are the "total" members of those three dimensions, so
+# this asks the server for exactly the numbers we already wanted, and the
+# responses drop from 500 rows to two.
+AGGREGATE_ONLY = {"partner2Code": 0, "motCode": 0, "customsCode": "C00"}
+
 _last_call_at = 0.0
 
 
@@ -524,6 +535,7 @@ def fetch(
         "period": period,
         "cmdCode": hs,
         "flowCode": flow,
+        **AGGREGATE_ONLY,
     }
     if partner is not None:
         params["partnerCode"] = partner
