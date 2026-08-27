@@ -36,5 +36,5 @@ ELAPSED=$(( $(date +%s) - START ))
 {
   echo "== #$CASE  \"$UTTERANCE\"  (${ELAPSED}s, rc=$RC)"
   # shellcheck disable=SC2086
-  $PY tests/trigger_evidence.py --since-minutes "$(( ELAPSED / 60 + 2 ))" | sed -n '3,9p'
+  $PY tests/trigger_evidence.py --since-minutes "$(( ELAPSED / 60 + 2 ))" | sed -n '3,14p'
 } | tee "$OUT/evidence-$CASE.txt"
