@@ -27,10 +27,21 @@ case "$TRADE_STATS_CACHE_DIR" in
 esac
 mkdir -p "$TRADE_STATS_CACHE_DIR"
 
+# 저장소 안에서 돌리면 세션이 스킬 소스를 직접 읽고 '개발자 모드'로 답한다. 실제로
+# 23번 답변이 "지금 이 저장소의 trade-stats-lookup 기준입니다" 로 시작했다 — 실제
+# 사용자는 그런 cwd 에 있지 않으므로 그건 사용자가 받을 답변이 아니다. 그래서 claude 는
+# 빈 폴더에서 띄운다. 플러그인은 user 스코프라 저장소 밖에서도 그대로 로드된다.
+REPO="$(pwd)"
+RUNDIR="$OUT/cwd-$CASE"
+rm -rf "$RUNDIR"
+mkdir -p "$RUNDIR"
+
 START=$(date +%s)
-claude -p "$UTTERANCE" --allowedTools Bash Read Write Glob Grep --output-format text \
-  > "$OUT/answer-$CASE.md" 2>&1
+CLAUDE_ARGS="--allowedTools Bash Read Write Glob Grep --output-format text"
+# shellcheck disable=SC2086
+( cd "$RUNDIR" && claude -p "$UTTERANCE" $CLAUDE_ARGS ) > "$OUT/answer-$CASE.md" 2>&1
 RC=$?
+cd "$REPO"
 ELAPSED=$(( $(date +%s) - START ))
 
 {
