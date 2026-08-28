@@ -26,4 +26,10 @@ if [ "${1:-}" = "--live" ]; then
   echo "=== 라이브 계약 테스트 (Comtrade 실호출) ==="
   # shellcheck disable=SC2086
   TRADE_STATS_LIVE=1 $PY -m unittest test_live -v 2>&1 | tail -n 20
+
+  echo
+  echo "=== 외부 기준 대조 (관세청 공표치 · 미러 · 커버리지) ==="
+  # 픽스처가 곧 정답인 오프라인 스위트가 구조적으로 못 하는 일이다. 4분쯤 걸린다.
+  # shellcheck disable=SC2086
+  TRADE_STATS_LIVE=1 $PY -m unittest test_external_truth -v 2>&1 | tail -n 20
 fi
