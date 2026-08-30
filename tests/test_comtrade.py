@@ -207,6 +207,32 @@ class TestBreakdownCollapse(unittest.TestCase):
         codes = [r["partner_code"] for r in rows]
         self.assertEqual(len(codes), len(set(codes)), "상대국이 중복되면 점유율이 틀어진다")
 
+    def test_partner_none_also_returns_the_world_row(self):
+        """`partner=None` 은 상대국 행과 World 행을 같이 돌려준다.
+
+        이걸 모르고 합계를 내면 정확히 두 배가 나온다. 실제로 2026-08-28 에
+        `test_external_truth` 를 쓰면서 이 줄을 빠뜨렸고, 커버리지가 열 나라 전부
+        정확히 200.0% 로 찍혔다. 숫자가 2.0 이라 오염처럼 보였지만 오염이 아니라
+        필터 한 줄이 없던 것이었다.
+
+        제품 코드는 처음부터 걸러 왔다(analyze.py `collect_competitors`). 이 테스트는
+        그 필터가 왜 필요한지를 남겨서, 다음에 합계를 내는 사람이 같은 곳에 빠지지
+        않게 하려는 것이다. 응답에서 World 행이 사라지면 이 테스트가 먼저 알려준다.
+        """
+        context.block_network()
+        rows = ct.fetch(freq="A", period=2023, reporter=704, partner=None,
+                        hs="3304", flow="M")
+        world = [r for r in rows if r["partner_code"] == ct.WORLD]
+        self.assertEqual(len(world), 1,
+                         "World 행이 하나 섞여 있어야 한다 — 없어지면 걸러내는 코드가 "
+                         "무의미해지고, 늘어나면 합계가 부풀려진다")
+
+        partners = [r for r in rows if r["partner_code"] not in (ct.WORLD, None)]
+        unfiltered = sum(r["value_usd"] or 0 for r in rows)
+        filtered = sum(r["value_usd"] or 0 for r in partners)
+        self.assertAlmostEqual(unfiltered / filtered, 2.0, places=2,
+                               msg="안 거르면 정확히 두 배가 된다는 것이 이 함정의 지문이다")
+
     def test_korea_share_of_vietnam_matches_the_verified_value(self):
         context.block_network()
         rows = [r for r in ct.fetch(freq="A", period=2023, reporter=704, partner=None,

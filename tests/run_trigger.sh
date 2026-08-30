@@ -39,7 +39,9 @@ mkdir -p "$RUNDIR"
 START=$(date +%s)
 CLAUDE_ARGS="--allowedTools Bash Read Write Glob Grep --output-format text"
 # shellcheck disable=SC2086
-( cd "$RUNDIR" && claude -p "$UTTERANCE" $CLAUDE_ARGS ) > "$OUT/answer-$CASE.md" 2>&1
+# stdin 을 안 닫으면 claude 가 3초 기다린 뒤 "no stdin data received" 경고를 찍고,
+# 그 경고가 answer 파일 첫 줄에 섞여 판정 자료를 더럽힌다.
+( cd "$RUNDIR" && claude -p "$UTTERANCE" $CLAUDE_ARGS < /dev/null ) > "$OUT/answer-$CASE.md" 2>&1
 RC=$?
 cd "$REPO"
 ELAPSED=$(( $(date +%s) - START ))
