@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tests/fixtures/cache
-          key: comtrade-fixtures-v2
+          key: comtrade-fixtures-v3
 
       - name: Record fixtures
         if: steps.fixtures.outputs.cache-hit != 'true'
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: tests/fixtures/cache
-          key: comtrade-fixtures-v2
+          key: comtrade-fixtures-v3
 
       - name: Build the distributable skill
         env:
