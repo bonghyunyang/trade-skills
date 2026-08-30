@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "해외영업 담당자를 위한 무역 통계·시장 우선순위 스킬 묶음",
-    "version": "0.3.0"
+    "version": "0.3.1"
   },
   "plugins": [
     {
       "name": "trade-stats",
       "source": "./plugins/trade-stats",
       "description": "HS코드별, 국가별 수출입 통계 조회와 시장 우선순위 산출. 전 세계 225개국 신규 시장 발굴 포함. 인증키 불필요.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "category": "research",
       "keywords": [
         "trade",
