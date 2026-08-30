@@ -7,6 +7,10 @@ name: live contract
 # every partner still arrives in one call, that Taiwan's data still sits under
 # code 490. Weekly is often enough; a break here is a silent-wrong-answer bug
 # waiting to happen, not an outage.
+#
+# It also runs test_external_truth, which asks the other half of the question:
+# not "is the response shaped right" but "are the numbers right", measured
+# against figures the Korean government published.
 
 on:
   schedule:
@@ -31,6 +35,18 @@ jobs:
           TRADE_STATS_MIN_INTERVAL: "3.0"
         working-directory: tests
         run: python3 -m unittest test_live -v
+
+      # test_live checks the shape of the response. This checks the numbers in
+      # it, against figures the Korean government published. Without it a value
+      # can go silently wrong while every shape assertion still passes — which
+      # is exactly what the 500-row truncation did for several releases.
+      - name: Check the numbers against published statistics
+        env:
+          TRADE_STATS_LIVE: "1"
+          TRADE_STATS_CONTACT: https://github.com/bonghyunyang/trade-skills
+          TRADE_STATS_MIN_INTERVAL: "3.0"
+        working-directory: tests
+        run: python3 -m unittest test_external_truth -v
 
       - name: Open an issue when the contract breaks
         if: failure()
