@@ -39,18 +39,46 @@ def run_market(*args) -> dict:
     return payload
 
 
+class TestMixedHeadingIsBlockedAtTheCLI(unittest.TestCase):
+    """가드는 스크립트가 집행한다. 본문 규칙으로 두면 반만 지켜진다.
+
+    이번 릴리스에서 그 증거를 두 번 봤다 — 바이어 고지 규칙이 SKILL.md 본문에
+    멀쩡히 있는데도 9번과 26번에서 안 지켜졌다. 그래서 이건 지시가 아니라 종료
+    코드로 만든다. 위 테스트들이 전부 --hs4-ok 를 넘기고 있으므로, 플래그를 뺐을
+    때 정말 막히는지는 여기서만 확인된다.
+    """
+
+    def test_market_refuses_a_scattered_four_digit_code(self):
+        context.block_network()
+        argv = ["analyze.py", "market", "--hs", "3907", "--countries", "VN", "--quiet"]
+        buf = io.StringIO()
+        old = sys.argv
+        try:
+            sys.argv = argv
+            with contextlib.redirect_stdout(buf):
+                from context import analyze
+                rc = analyze.main()
+        finally:
+            sys.argv = old
+        out = buf.getvalue()
+        self.assertEqual(rc, 3, "섞인 4단위는 조회 전에 멈춰야 한다")
+        self.assertIn("390740", out, "무엇으로 좁힐지 알려주지 않으면 막기만 한 것이다")
+        self.assertIn("--hs4-ok", out, "그대로 진행할 길도 같이 알려줘야 한다")
+        self.assertNotIn("\"entries\"", out, "멈췄는데 리포트 JSON 이 나오면 안 된다")
+
+
 class TestMarketRun(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="trade-e2e-")
-        cls.result = run_market("--hs", "3907", "--countries", "VN,US,JP",
+        cls.result = run_market("--hs", "3907", "--hs4-ok", "--countries", "VN,US,JP",
                                 "--years", "3", "--latest-year", "2025",
                                 "--outdir", cls.tmp)
         # CSV is opt-in: the skill only passes --csv when the user asks for raw
         # data. The default run above must therefore stay CSV-free, so the CSV
         # contract is asserted against a second run in its own directory.
         cls.csv_tmp = tempfile.mkdtemp(prefix="trade-e2e-csv-")
-        cls.csv_result = run_market("--hs", "3907", "--countries", "VN,US,JP",
+        cls.csv_result = run_market("--hs", "3907", "--hs4-ok", "--countries", "VN,US,JP",
                                     "--years", "3", "--latest-year", "2025",
                                     "--csv", "--outdir", cls.csv_tmp)
 
@@ -212,7 +240,7 @@ class TestUnmeasurableTarget(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="trade-e2e-ly-")
-        cls.result = run_market("--hs", "3907", "--countries", "US,JP,LY",
+        cls.result = run_market("--hs", "3907", "--hs4-ok", "--countries", "US,JP,LY",
                                 "--years", "3", "--latest-year", "2025",
                                 "--outdir", cls.tmp)
 
@@ -288,7 +316,7 @@ class TestInputErrors(unittest.TestCase):
         self.assertIn("390710", result["message"])
 
     def test_unknown_country_fails_with_a_next_step(self):
-        result = run_market("--hs", "3907", "--countries", "엘프왕국",
+        result = run_market("--hs", "3907", "--hs4-ok", "--countries", "엘프왕국",
                             "--outdir", tempfile.mkdtemp())
         self.assertEqual(result["_rc"], 1)
         self.assertIn("country-search", result["message"])

@@ -75,7 +75,18 @@ def main() -> int:
     ct.CACHE_DIR = FIXTURES
     ct.CACHE_TTL_SECONDS = 10 ** 9
 
-    for label, kwargs in QUERIES:
+    # 4단위 안에서 6단위가 얼마나 갈리는지 보는 조회. 자식 목록을 hs.json 에서 뽑으므로
+    # 위 QUERIES 처럼 하드코딩할 수 없고, ct 를 import 한 뒤에야 만들 수 있다.
+    # 3907 은 갈리는 코드(1위 27%), 3304 는 안 갈리는 코드(330499 가 90%)다.
+    queries = list(QUERIES)
+    for head in ("3907", "3304"):
+        kids = sorted(str(r["code"]) for r in ct.hs_table()
+                      if len(str(r["code"])) == 6 and str(r["code"]).startswith(head))
+        queries.append((f"mix-{head}-2025",
+                        dict(freq="A", period=2025, reporter=410, partner=0,
+                             hs=",".join(kids), flow="X")))
+
+    for label, kwargs in queries:
         rows = ct.fetch(**kwargs)
         print(f"  {label:<24} {len(rows):>4} rows")
 

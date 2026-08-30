@@ -652,6 +652,74 @@ def build_report(ctx: dict) -> str:
 # --------------------------------------------------------------------------
 
 
+# HS 4단위 한 칸에 이질적인 제품이 섞여 있으면, 나오는 것은 "우리 제품의 시장"이 아니라
+# 그 묶음의 시장이다. 그런데 얼마나 섞였는지는 코드마다 완전히 다르다 — 한국 수출 2025년
+# 기준으로 3907은 1위 자식이 34%(390740)뿐이라 잡탕이고, 3304는 330499 하나가 90%라
+# 사실상 단일 품목이며, 6309는 자식이 하나뿐이다. 그래서 "항상 6단위로 좁혀라"도
+# "4단위면 충분하다"도 둘 다 틀리고, 데이터가 갈라 줘야 한다.
+HS4_MIX_THRESHOLD = 0.60
+
+
+def hs6_mix(hs4: str, year: int, log) -> list[tuple[str, float]]:
+    """4단위 안에서 6단위가 어떻게 갈리는지. 한국 수출 기준, 딱 1콜."""
+    kids = [str(r["code"]) for r in ct.hs_table()
+            if len(str(r["code"])) == 6 and str(r["code"]).startswith(hs4)]
+    if len(kids) <= 1:
+        return []
+    rows = ct.fetch(freq="A", period=year, reporter=ct.KOREA, partner=0,
+                    hs=",".join(sorted(kids)), flow="X")
+    vals = [(str(r["hs"]), r["value_usd"] or 0) for r in rows]
+    total = sum(v for _, v in vals)
+    if not total:
+        return []
+    return sorted(((c, v / total) for c, v in vals if v), key=lambda x: -x[1])
+
+
+def stop_if_hs4_is_a_mixed_bag(hs: str, year: int, log, allow: bool) -> int | None:
+    """섞인 4단위면 조회 전에 멈추고 구성비를 보여준다.
+
+    경고만 찍고 진행하지 않는 이유가 있다. 스캔은 몇 분이 걸리고, 리포트가 나온 뒤에
+    "사실 이건 잡탕이었습니다" 라고 말해봐야 사용자는 이미 그 표를 믿기 시작한 뒤다.
+    실제로 v0.3.0 까지 그렇게 동작했다 — 3907 리포트를 다 만들어 놓고 맨 끝
+    '다음 단계'에서야 6단위를 권했다.
+
+    막는 김에 정보를 준다. 구성비를 보여주면 사용자가 "우리는 에폭시요" 라고 답할 수
+    있고, 그러면 되묻기 한 번이 정확한 조회로 바뀐다.
+    """
+    if len(hs) != 4 or allow:
+        return None
+    mix = hs6_mix(hs, year, log)
+    if not mix or mix[0][1] >= HS4_MIX_THRESHOLD:
+        return None
+
+    lines = [
+        "",
+        f"멈췄습니다 — HS {hs} 는 6단위로 갈리는 폭이 큽니다.",
+        "",
+        f"  {year}년 한국 수출 기준 구성비 (1위 {mix[0][0]} 가 {mix[0][1]:.0%}, "
+        f"기준 {HS4_MIX_THRESHOLD:.0%})",
+        "",
+    ]
+    for code, share in mix[:6]:
+        desc = ct.hs_desc(code) or ""
+        lines.append(f"    {code}  {share:5.1%}  {desc[:58]}")
+    if len(mix) > 6:
+        lines.append(f"    … 외 {len(mix) - 6}개")
+    lines += [
+        "",
+        "이대로 돌리면 '우리 제품의 시장'이 아니라 저 묶음 전체의 시장이 나옵니다.",
+        "숫자는 맞는데 결론이 남의 제품 것이 됩니다.",
+        "",
+        "다음 중 하나로 다시 실행하세요.",
+        f"  --hs {mix[0][0]}      제품에 해당하는 6단위로 좁힌다 (권장)",
+        f"  --hs {hs} --hs4-ok   묶음 전체를 보는 게 맞다면 그대로 진행",
+        "",
+    ]
+    for line in lines:
+        print(line)
+    return 3
+
+
 def cmd_market(a) -> int:
     quiet = a.quiet
     def log(msg: str) -> None:
@@ -663,6 +731,9 @@ def cmd_market(a) -> int:
     log(f"HS {hs} — {desc}")
 
     latest = int(a.latest_year) if a.latest_year else latest_available_year(hs, log)
+    stop = stop_if_hs4_is_a_mixed_bag(hs, latest, log, a.hs4_ok)
+    if stop is not None:
+        return stop
     years = list(range(latest - a.years + 1, latest + 1))
     log(f"대상 연도: {years}")
 
@@ -1526,6 +1597,8 @@ def main() -> int:
     s.add_argument("--no-competitors", action="store_true")
     s.add_argument("--csv", action="store_true",
                    help="원본 데이터 CSV도 저장 (기본은 리포트 md + JSON 요약만)")
+    s.add_argument("--hs4-ok", action="store_true",
+                   help="4단위가 여러 제품으로 갈려도 그대로 진행")
     s.add_argument("--outdir", default=DEFAULT_OUTDIR)
     s.add_argument("--quiet", action="store_true")
     s.set_defaults(fn=cmd_market)

@@ -256,3 +256,54 @@ class TestDerivedMetrics(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMixedHeadingGuard(unittest.TestCase):
+    """HS 4단위 한 칸에 이질적인 제품이 섞여 있으면 조회 전에 멈춘다.
+
+    v0.3.1 까지는 3907 리포트를 끝까지 만들어 놓고 맨 끝 '다음 단계' 에서야
+    "어느 수지인지 특정되면 6단위로 다시 보라" 고 권했다. 몇 분을 태우고 나서
+    하는 말이라 이미 늦다 — 사용자는 그때 그 표를 믿기 시작한 뒤다.
+
+    핵심은 "항상 6단위로 좁혀라" 가 아니라는 것이다. 얼마나 섞였는지는 코드마다
+    다르고, 그건 데이터가 갈라 준다.
+    """
+
+    def _mix(self, hs):
+        import context
+        context.block_network()
+        return analyze.hs6_mix(hs, 2025, lambda m: None)
+
+    def test_a_scattered_heading_is_detected(self):
+        """3907 은 폴리아세탈·에폭시·폴리카보네이트·PET 가 한 칸에 있다."""
+        mix = self._mix("3907")
+        self.assertTrue(mix)
+        self.assertLess(mix[0][1], analyze.HS4_MIX_THRESHOLD,
+                        "3907 의 1위 6단위가 문턱을 넘으면 이 코드는 더 이상 "
+                        "'섞인 4단위'의 예가 아니다. 예제를 바꿔야 한다.")
+
+    def test_a_concentrated_heading_is_left_alone(self):
+        """3304 는 330499 하나가 90% 라 4단위로 봐도 사실상 같은 시장이다."""
+        mix = self._mix("3304")
+        self.assertTrue(mix)
+        self.assertEqual(mix[0][0], "330499")
+        self.assertGreaterEqual(mix[0][1], analyze.HS4_MIX_THRESHOLD)
+
+    def test_shares_sum_to_one(self):
+        for hs in ("3907", "3304"):
+            with self.subTest(hs=hs):
+                self.assertAlmostEqual(sum(s for _, s in self._mix(hs)), 1.0, places=6)
+
+    def test_six_digit_input_is_never_blocked(self):
+        """이미 좁혀 온 사용자를 다시 붙잡으면 안 된다."""
+        import context
+        context.block_network()
+        self.assertIsNone(
+            analyze.stop_if_hs4_is_a_mixed_bag("390740", 2025, lambda m: None, False))
+
+    def test_the_override_flag_lets_a_scattered_heading_through(self):
+        """묶음 전체를 보는 게 맞는 경우도 있다. 막는 것이지 금지하는 게 아니다."""
+        import context
+        context.block_network()
+        self.assertIsNone(
+            analyze.stop_if_hs4_is_a_mixed_bag("3907", 2025, lambda m: None, True))

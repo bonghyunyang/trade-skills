@@ -47,7 +47,7 @@ class TestPerCountryFailureIsolation(unittest.TestCase):
         buf = io.StringIO()
         argv = sys.argv
         try:
-            sys.argv = ["analyze.py", "market", "--hs", "3907",
+            sys.argv = ["analyze.py", "market", "--hs", "3907", "--hs4-ok",
                         "--countries", "VN,US,JP", "--years", "3",
                         "--latest-year", "2025", "--outdir", self.tmp, "--quiet"]
             with contextlib.redirect_stdout(buf):
