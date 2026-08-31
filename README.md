@@ -261,9 +261,12 @@ This tool sells numbers, so here is what was checked and what was not.
   there is unverified.
 - Tariff figures (WITS) are indicative. Verify before you clear customs.
 
-Seeing a number that looks wrong is the most useful thing you can report. Open an
-[issue](https://github.com/bonghyunyang/trade-skills/issues) with the HS code and
-country — if it reproduces, it becomes a test.
+Seeing a number that looks wrong is the most useful thing you can report — there is
+[a template for it](https://github.com/bonghyunyang/trade-skills/issues/new?template=wrong-number.yml)
+that asks for the HS code, the country, and what you expected instead. If it
+reproduces, it becomes a test. Same for
+[a question that should have activated the skill and did not](https://github.com/bonghyunyang/trade-skills/issues/new?template=skill-did-not-trigger.yml)
+— paste your wording unedited; the rough version is the useful one.
 
 ## 🗺 Roadmap
 

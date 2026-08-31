@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Buyer company names
+    url: https://github.com/bonghyunyang/trade-skills#-boundaries
+    about: Not available from any free source — Korean customs declarations are confidential by law. See Boundaries before filing.
+  - name: Tariff rates
+    url: https://hts.usitc.gov
+    about: Figures here are indicative. Verify with the importing country's tariff schedule before you clear customs.

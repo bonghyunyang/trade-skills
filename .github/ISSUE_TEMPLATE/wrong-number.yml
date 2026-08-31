@@ -1,0 +1,75 @@
+name: A number looks wrong
+description: A figure in a report does not match what you expected. This is the most useful report we get.
+title: "[number] HS____ / ____"
+labels: ["wrong-number"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you — this is the report that matters most here.
+
+        A tool that sells numbers fails silently: the arithmetic looks fine and the
+        conclusion is wrong. We have shipped exactly that bug before (a reporter's
+        imports overstated 5×, live for several releases, past a green test suite).
+        It was caught by measurement, not by tests. You measuring is how the next
+        one gets caught.
+
+        **We need enough to reproduce it.** A report we cannot rerun cannot become
+        a test, and if it does not become a test it comes back.
+  - type: input
+    id: hs
+    attributes:
+      label: HS code
+      description: Exactly as you gave it — 4 or 6 digits.
+      placeholder: "3907, or 330499"
+    validations:
+      required: true
+  - type: input
+    id: country
+    attributes:
+      label: Country / countries
+      placeholder: "Kazakhstan, or KZ,UZ"
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: What you asked, or the command you ran
+      description: The sentence you typed in chat is fine — we can work from that.
+      placeholder: '"3907 카자흐스탄 수출 어때?" or: analyze.py market --hs 3907 --countries KZ'
+    validations:
+      required: true
+  - type: textarea
+    id: got
+    attributes:
+      label: The figure it showed
+      description: Paste the row or table cell. Say which column.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and where that comes from
+      description: >
+        A source makes this far faster to settle — Korea Customs (tradedata.go.kr),
+        KITA K-stat, the partner country's own statistics office. "It felt too high"
+        is still worth filing; say so and we will measure it.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      description: "`claude plugin list` shows it. Or paste the report's generated date."
+      placeholder: "0.3.2"
+  - type: markdown
+    attributes:
+      value: |
+        **Two things that are working as intended, not bugs:**
+
+        - **"Share" is share of imports, not market share.** Local producers are
+          absent from trade statistics, so a country with strong domestic
+          manufacturing will show Korea's share as higher than it really is.
+        - **Korea's export figure and the partner's market size can be from
+          different years.** Partner customs reporting runs 6–12 months behind.
+          The report states which year each figure came from.

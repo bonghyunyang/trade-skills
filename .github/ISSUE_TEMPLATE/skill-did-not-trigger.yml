@@ -1,0 +1,48 @@
+name: The skill did not activate
+description: You asked a trade question and nothing happened, or the wrong thing ran.
+title: "[trigger] "
+labels: ["trigger"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A skill that does not activate does not exist to the person asking. We test
+        this by throwing real sentences at real sessions — 31 so far, twelve of them
+        lifted verbatim from public Q&A rather than invented by the author. One of
+        those twelve found a real failure the author's own phrasings never did.
+
+        **Your exact wording is the whole report.** Please paste it unedited —
+        typos, spacing, half-finished sentences and all. A tidied-up version of what
+        you said tests something you did not actually type.
+  - type: textarea
+    id: utterance
+    attributes:
+      label: What you typed, word for word
+      description: Do not clean it up. The rough version is the useful one.
+    validations:
+      required: true
+  - type: dropdown
+    id: what_happened
+    attributes:
+      label: What happened
+      options:
+        - Nothing ran — I got a general answer with no data
+        - It asked me a question but never ran anything
+        - It ran, but the wrong kind of lookup
+        - It ran when it should not have
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you wanted instead
+    validations:
+      required: true
+  - type: input
+    id: surface
+    attributes:
+      label: Where
+      description: Trigger behaviour differs by surface, and only Claude Code has been verified.
+      placeholder: "Claude Code / Cowork / claude.ai"
+    validations:
+      required: true
