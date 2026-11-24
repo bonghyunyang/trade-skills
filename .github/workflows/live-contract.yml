@@ -17,6 +17,12 @@ on:
     - cron: "17 3 * * 1"   # Mondays, 03:17 UTC
   workflow_dispatch:
 
+# The default token is read-only. The last step opens an issue when the contract
+# breaks, and without issues: write it dies with a 403 — the alarm stays silent.
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   contract:
     runs-on: ubuntu-latest
@@ -41,6 +47,8 @@ jobs:
       # can go silently wrong while every shape assertion still passes — which
       # is exactly what the 500-row truncation did for several releases.
       - name: Check the numbers against published statistics
+        # A drifted reference list must not also switch off the numbers check.
+        if: ${{ !cancelled() }}
         env:
           TRADE_STATS_LIVE: "1"
           TRADE_STATS_CONTACT: https://github.com/bonghyunyang/trade-skills
