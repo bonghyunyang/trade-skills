@@ -697,7 +697,7 @@
 "name": "Falkland Isds (Malvinas)",
 "iso2": "FK",
 "iso3": "FLK",
-"reporter": false,
+"reporter": true,
 "partner": true,
 "historical": false
 },
@@ -1522,7 +1522,7 @@
 },
 {
 "code": 520,
-"name": "Nauru",
+"name": "Naoero",
 "iso2": "NR",
 "iso3": "NRU",
 "reporter": true,
